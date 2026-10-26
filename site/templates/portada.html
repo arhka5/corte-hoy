@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_corte.html" import corte %}
+{% block contenido %}
+<section class="heroe">
+  <h1>Cortes de luz programados en Lima y Callao</h1>
+  <p class="estado{{ ' hay' if hoy_n }}">{% if hoy_n %}Hoy hay <strong>{{ hoy_n }} {{ 'corte programado' if hoy_n == 1 else 'cortes programados' }}</strong>.{% else %}Hoy no hay cortes programados publicados.{% endif %}</p>
+  <p class="heroe-texto">Juntamos los avisos de mantenimiento de Pluz (Lima norte, centro y Callao) y Luz del Sur (Lima sur y este) en una sola lista por día y por distrito. Elige tu distrito arriba para ver solo lo tuyo. Actualizado el {{ actualizado_txt }}.</p>
+</section>
+
+{% for d in dias %}
+<section class="dia">
+  <h2>{{ d.fecha_txt }}</h2>
+  <div class="cortes">{% for c in d.cortes %}{{ corte(c) }}{% endfor %}</div>
+</section>
+{% else %}
+<p class="vacio">No hay cortes programados publicados para los próximos días. Las empresas suelen publicar los de la semana siguiente entre el viernes y el lunes.</p>
+{% endfor %}
+
+<section class="bloque">
+  <h2>Busca tu distrito</h2>
+  <ul class="distritos">{% for d in distritos_menu %}<li><a href="/distrito/{{ d.slug }}/">{{ d.nombre }}{% if d.n %} <span>{{ d.n }}</span>{% endif %}</a></li>{% endfor %}</ul>
+</section>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_corte.html" import corte %}
+{% block contenido %}
+<nav class="migas" aria-label="Migas de pan"><a href="/">Inicio</a> / <span aria-current="page">{{ nombre }}</span></nav>
+<section class="heroe">
+  <h1>Corte de luz hoy en {{ nombre }}</h1>
+  <p class="estado{{ ' hay' if hoy_d }}">{% if hoy_d %}Hoy hay <strong>{{ hoy_d|length }} {{ 'corte programado' if hoy_d|length == 1 else 'cortes programados' }}</strong> en {{ nombre }}.{% elif dias %}Hoy no hay cortes programados en {{ nombre }}. El próximo es el {{ dias[0].fecha_txt|lower }}.{% else %}No hay cortes programados publicados para {{ nombre }} en los próximos días.{% endif %}</p>
+  <p class="heroe-texto">Revisa si tu calle aparece en la lista: un corte programado afecta solo las calles y manzanas indicadas, no todo el distrito. Actualizado el {{ actualizado_txt }}.</p>
+</section>
+
+{% for d in dias %}
+<section class="dia">
+  <h2>{{ d.fecha_txt }}</h2>
+  <div class="cortes">{% for c in d.cortes %}{{ corte(c, c.ds|length > 1) }}{% endfor %}</div>
+</section>
+{% endfor %}
+
+<section class="bloque nota">
+  <h2>¿Se fue la luz y no aparece aquí?</h2>
+  <p>Puede ser un corte no programado (una falla o una emergencia). Esos no se anuncian con anticipación: repórtalo a tu distribuidora. {% for k, e in empresas.items() %}<a href="{{ e.url }}" rel="noopener">{{ e.nombre }}</a> atiende {{ e.zona }}{{ '; ' if not loop.last else '.' }}{% endfor %}</p>
+</section>
+{% endblock %}

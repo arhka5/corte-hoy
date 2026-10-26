@@ -1,0 +1,10 @@
+{% macro corte(c, mostrar_distrito=True) %}
+<article class="corte">
+  <p class="c-hora"><time>{{ c.inicio }}</time> a <time>{{ c.fin }}</time></p>
+  {% if mostrar_distrito %}<h3 class="c-dist">{% for d in c.ds %}<a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a>{{ ' y ' if not loop.last }}{% endfor %}</h3>{% endif %}
+  {% if c.zonas_txt|length > 280 %}
+  <details class="c-zonas"><summary>{{ c.zonas_txt[:200].rsplit(' ', 1)[0] }}… <span>Ver todas las calles</span></summary><p>{{ c.zonas_txt }}</p></details>
+  {% elif c.zonas_txt %}<p class="c-zonas">{{ c.zonas_txt }}</p>{% endif %}
+  <p class="c-fuente">Aviso de <a href="{{ c.fuente }}" rel="noopener">{{ c.empresa_txt }}</a></p>
+</article>
+{% endmacro %}

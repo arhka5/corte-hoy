@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block contenido %}
+<article class="texto">
+  <h1>Acerca de Corte Hoy</h1>
+  <p>Corte Hoy junta en un solo lugar los cortes de luz programados por mantenimiento que anuncian las empresas eléctricas de Lima y Callao, ordenados por día y por distrito.</p>
+  <h2>De dónde salen los datos</h2>
+  <ul>
+    {% for k, e in empresas.items() %}<li><a href="{{ e.url }}" rel="noopener">{{ e.nombre }}</a> ({{ e.zona }}){% if fuentes.get(k) %}: {% if fuentes[k].ok %}consultada correctamente{% else %}la última consulta falló, se muestran sus avisos anteriores{% endif %}{% endif %}.</li>{% endfor %}
+  </ul>
+  <p>Se revisan cada 6 horas. Copiamos el texto de cada aviso tal como lo publica la empresa (horario, distrito, calles y manzanas) y enlazamos al aviso original. Si hay diferencias, vale lo que diga la empresa.</p>
+  <h2>Lo que no incluye</h2>
+  <p>Cortes de agua: Sedapal no publica sus cortes programados en una lista en su web (los anuncia por WhatsApp y redes), así que por ahora no podemos incluirlos. Tampoco aparecen cortes por fallas o emergencias, que no se anuncian.</p>
+  <h2>Privacidad</h2>
+  <p>Corte Hoy no usa cookies ni pide datos personales. El alojamiento (GitHub Pages) registra datos técnicos de las visitas por seguridad.</p>
+  <p>¿Encontraste un error? <a href="{{ repo }}/issues/new" rel="noopener">Avísanos</a>.</p>
+</article>
+{% endblock %}
