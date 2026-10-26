@@ -69,4 +69,6 @@ details[open].c-zonas summary { display: none; }
 .pie a { color: #fff; }
 .pie-titulo { font-size: 1.05rem; color: #fff; margin-bottom: 10px; }
 .pie-dist { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-wrap: wrap; gap: 0 14px; }
+.pie .pie-contacto { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; border-radius: 8px; background: var(--ambar); color: var(--tinta); font-weight: 700; text-decoration: none; }
+.pie .pie-contacto:hover { filter: brightness(1.08); }
 .pie-dist a, .pie-links a, .pie-fuente a, .migas a { display: inline-flex; align-items: center; min-height: 44px; }
