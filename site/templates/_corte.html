@@ -1,10 +1,17 @@
 {% macro corte(c, mostrar_distrito=True) %}
-<article class="corte">
-  <p class="c-hora"><time>{{ c.inicio }}</time> a <time>{{ c.fin }}</time></p>
+<article class="corte" data-fecha="{{ c.fecha }}" data-ini="{{ c.ini_min }}" data-fin="{{ c.fin_min }}">
+  <div class="c-cab">
+    <p class="c-hora"><time>{{ c.inicio }}</time><span class="c-a" aria-label="a">–</span><time>{{ c.fin }}</time></p>
+    <span class="c-estado" data-estado hidden></span>
+  </div>
+  <div class="c-dia" aria-hidden="true" style="--ini: {{ c.ini_pct }}%; --fin: {{ c.fin_pct }}%">
+    <span class="c-franja"></span><span class="c-ahora" hidden></span>
+  </div>
+  <div class="c-escala" aria-hidden="true"><span>0 h</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
   {% if mostrar_distrito %}<h3 class="c-dist">{% for d in c.ds %}<a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a>{{ ' y ' if not loop.last }}{% endfor %}</h3>{% endif %}
   {% if c.zonas_txt|length > 280 %}
   <details class="c-zonas"><summary>{{ c.zonas_txt[:200].rsplit(' ', 1)[0] }}… <span>Ver todas las calles</span></summary><p>{{ c.zonas_txt }}</p></details>
   {% elif c.zonas_txt %}<p class="c-zonas">{{ c.zonas_txt }}</p>{% endif %}
-  <p class="c-fuente">Aviso de <a href="{{ c.fuente }}" rel="noopener">{{ c.empresa_txt }}</a></p>
+  <p class="c-pie"><span>{{ c.dur_txt }} sin luz</span> · Aviso de <a href="{{ c.fuente }}" rel="noopener">{{ c.empresa_txt }}</a></p>
 </article>
 {% endmacro %}

@@ -111,7 +111,17 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         if c["fecha"] < hoy.isoformat():
             continue
         ds = [distrito(d) for d in c["distritos"]]
+        # Franja del día para la barra de 24 h (un corte que pasa la medianoche llega hasta las 24:00).
+        h0, m0 = map(int, c["inicio"].split(":"))
+        h1, m1 = map(int, c["fin"].split(":"))
+        ini, fin = h0 * 60 + m0, h1 * 60 + m1
+        if fin <= ini:
+            fin = 24 * 60
+        horas, mins = divmod(fin - ini, 60)
         cortes.append({**c, "ds": [{"slug": s, "nombre": n} for s, n in ds],
+                       "ini_pct": round(ini / 14.4, 2), "fin_pct": round(fin / 14.4, 2),
+                       "ini_min": ini, "fin_min": fin,
+                       "dur_txt": f"{horas} h" + (f" {mins} min" if mins else "") if horas else f"{mins} min",
                        "distritos_txt": " y ".join(n for _, n in ds),
                        "fecha_txt": fecha_txt(c["fecha"], hoy), "zonas_txt": zonas_txt(c.get("zonas", "")),
                        "empresa_txt": EMPRESAS[c["empresa"]]["nombre"]})

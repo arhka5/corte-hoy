@@ -4,13 +4,18 @@
 <nav class="migas" aria-label="Migas de pan"><a href="/">Inicio</a> / <span aria-current="page">{{ nombre }}</span></nav>
 <section class="heroe">
   <h1>Corte de luz hoy en {{ nombre }}</h1>
-  <p class="estado{{ ' hay' if hoy_d }}">{% if hoy_d %}Hoy hay <strong>{{ hoy_d|length }} {{ 'corte programado' if hoy_d|length == 1 else 'cortes programados' }}</strong> en {{ nombre }}.{% elif dias %}Hoy no hay cortes programados en {{ nombre }}. El próximo es el {{ dias[0].fecha_txt|lower }}.{% else %}No hay cortes programados publicados para {{ nombre }} en los próximos días.{% endif %}</p>
+  <div class="tablero{{ ' sin' if not hoy_d }}">
+    {% if hoy_d %}<p class="tablero-num"><strong>{{ hoy_d|length }}</strong> <span>{{ 'corte programado hoy' if hoy_d|length == 1 else 'cortes programados hoy' }} en {{ nombre }}</span></p>
+    {% elif dias %}<p class="tablero-num"><strong>0</strong> <span>cortes hoy en {{ nombre }}. El próximo es el {{ dias[0].fecha_txt|lower }}.</span></p>
+    {% else %}<p class="tablero-num"><strong>0</strong> <span>cortes programados publicados para {{ nombre }} en los próximos días</span></p>{% endif %}
+    <p class="tablero-vivo" data-resumen hidden></p>
+  </div>
   <p class="heroe-texto">Revisa si tu calle aparece en la lista: un corte programado afecta solo las calles y manzanas indicadas, no todo el distrito. Actualizado el {{ actualizado_txt }}.</p>
 </section>
 
 {% for d in dias %}
 <section class="dia">
-  <h2>{{ d.fecha_txt }}</h2>
+  <h2>{{ d.fecha_txt }} <span>{{ d.cortes|length }} {{ 'corte' if d.cortes|length == 1 else 'cortes' }}</span></h2>
   <div class="cortes">{% for c in d.cortes %}{{ corte(c, c.ds|length > 1) }}{% endfor %}</div>
 </section>
 {% endfor %}
