@@ -52,48 +52,10 @@
   </div>
 </footer>
 <script>
-// El selector lleva directo a la página del distrito (sin JS, la lista del pie sirve igual).
+// El selector lleva directo a la página del distrito (sin JS, el formulario igual funciona).
 document.querySelectorAll("[data-ir]").forEach(function (s) {
   s.addEventListener("change", function () { if (s.value) location.href = "/distrito/" + s.value + "/"; });
 });
-
-// Estado en vivo de cada corte de hoy, con la hora de Lima (no la del equipo).
-(function () {
-  function ahoraLima() {
-    var p = {};
-    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date())
-      .forEach(function (x) { p[x.type] = x.value; });
-    return { fecha: p.year + "-" + p.month + "-" + p.day, min: +p.hour * 60 + +p.minute };
-  }
-  function falta(m) {
-    var h = Math.floor(m / 60), r = m % 60;
-    return h ? h + " h" + (r ? " " + r + " min" : "") : r + " min";
-  }
-  function pintar() {
-    var a = ahoraLima(), enCurso = 0, proximos = 0;
-    document.querySelectorAll(".corte[data-fecha]").forEach(function (c) {
-      var chip = c.querySelector("[data-estado]"), marca = c.querySelector(".c-ahora");
-      if (c.dataset.fecha !== a.fecha) return;
-      var ini = +c.dataset.ini, fin = +c.dataset.fin, estado, texto;
-      if (a.min < ini) { estado = "pronto"; texto = "Empieza en " + falta(ini - a.min); proximos++; }
-      else if (a.min < fin) { estado = "ahora"; texto = "En curso · vuelve en " + falta(fin - a.min); enCurso++; }
-      else { estado = "paso"; texto = "Terminó"; }
-      chip.textContent = texto; chip.hidden = false; chip.className = "c-estado " + estado;
-      c.classList.toggle("es-ahora", estado === "ahora"); c.classList.toggle("es-paso", estado === "paso");
-      if (estado === "paso" && !c.dataset.movido) { c.dataset.movido = "1"; c.parentNode.appendChild(c); }  // los que ya terminaron, al final
-      marca.style.left = (a.min / 14.4) + "%"; marca.hidden = false;
-    });
-    var r = document.querySelector("[data-resumen]");
-    if (r && (enCurso || proximos)) {
-      r.textContent = (enCurso ? enCurso + " en curso ahora" : "") +
-        (enCurso && proximos ? " · " : "") + (proximos ? proximos + (proximos === 1 ? " empieza más tarde" : " empiezan más tarde") : "");
-      r.hidden = false;
-    }
-  }
-  pintar();
-  setInterval(pintar, 60000);
-})();
 </script>
 </body>
 </html>

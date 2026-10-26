@@ -1,6 +1,6 @@
 /* Corte Hoy: "el aviso de corte". Rotulación de servicio público (Barlow Semi
    Condensed) + texto de lectura fácil (Atkinson Hyperlegible), azul noche y
-   ámbar de rayo como único acento. Pieza firma: la barra de 24 h. Ver DESIGN.md */
+   ámbar de rayo como único acento. Ver DESIGN.md */
 @font-face { font-family: "Barlow SC"; src: url("/fonts/barlow-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Barlow SC"; src: url("/fonts/barlow-800.woff2") format("woff2"); font-weight: 800; font-display: swap; }
 @font-face { font-family: "Atkinson"; src: url("/fonts/atkinson-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
@@ -47,60 +47,35 @@ select { width: 100%; min-height: 48px; border-radius: 8px; border: 2px solid va
 
 .migas { margin: 18px 0 0; font-size: .95rem; color: var(--suave); }
 
-/* Héroe y tablero (el número grande responde "¿hay cortes hoy?") */
+/* Héroe: el aviso "Hoy hay N cortes" como placa de servicio */
 .heroe { padding: 28px 0 8px; }
 .heroe h1 { font-size: clamp(2.1rem, 6vw, 3.2rem); color: var(--noche); text-transform: uppercase; letter-spacing: -.005em; margin-bottom: 18px; }
-.tablero { display: inline-flex; flex-direction: column; gap: 6px; background: var(--noche); color: #fff; border-radius: 10px; padding: 14px 18px; border-left: 8px solid var(--ambar); max-width: 100%; }
-.tablero.sin { border-left-color: var(--ok); }
-.tablero-num { display: flex; align-items: baseline; gap: 12px; margin: 0; flex-wrap: wrap; }
-.tablero-num strong { font: 800 3.4rem/1 var(--rotulo); color: var(--ambar); font-variant-numeric: tabular-nums; }
-.tablero.sin .tablero-num strong { color: #7ee2b0; }
-.tablero-num span { font: 600 1.25rem/1.2 var(--rotulo); }
-.tablero-vivo { margin: 0; font-weight: 700; color: #ffe08a; }
-.tablero-vivo::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--ambar); margin-right: 8px; vertical-align: 1px; }
-@media (prefers-reduced-motion: no-preference) {
-  .tablero-vivo::before { animation: latido 1.6s ease-in-out infinite; }
-  @keyframes latido { 50% { opacity: .25; } }
-}
-.heroe-buscar { display: grid; gap: 6px; margin: 22px 0 0; max-width: 420px; font: 600 1.15rem var(--rotulo); color: var(--noche); }
+.estado { display: inline-block; max-width: 100%; margin: 0; padding: 12px 18px; border-radius: 10px; background: var(--noche); color: #fff; border-left: 8px solid var(--ok); font: 600 1.3rem/1.25 var(--rotulo); }
+.estado strong { color: #7ee2b0; font-weight: 800; }
+.estado.hay { border-left-color: var(--ambar); }
+.estado.hay strong { color: var(--ambar); }
 .heroe-texto { color: var(--suave); max-width: 44em; margin-top: 16px; }
 
 /* Días */
 .dia { margin: 34px 0; }
-.dia h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 1.6rem; color: var(--noche); text-transform: uppercase; padding-bottom: 8px; border-bottom: 3px solid var(--noche); margin-bottom: 16px; }
-.dia h2 span { font: 600 1rem var(--rotulo); color: var(--suave); text-transform: none; }
+.dia h2 { font-size: 1.6rem; color: var(--noche); text-transform: uppercase; padding-bottom: 8px; border-bottom: 3px solid var(--noche); margin-bottom: 16px; }
 .cortes { display: grid; gap: 14px; }
 @media (min-width: 760px) { .cortes { grid-template-columns: repeat(2, 1fr); } }
 
 /* El corte */
 .corte { background: var(--blanco); border: 1px solid var(--linea); border-radius: 10px; padding: 16px 18px 12px; }
-.corte.es-ahora { border-color: var(--ambar); box-shadow: 0 0 0 2px var(--ambar); }
-.corte.es-paso { opacity: .62; }
-.c-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
-.c-hora { margin: 0; font: 800 2rem/1 var(--rotulo); color: var(--noche); font-variant-numeric: tabular-nums; }
-.c-a { color: var(--ambar); margin: 0 6px; }
-.c-estado { font: 700 .9rem/1 var(--texto); padding: 7px 10px; border-radius: 999px; background: var(--papel); color: var(--tinta); }
-.c-estado.ahora { background: var(--ambar); color: var(--tinta); }
-.c-estado.pronto { background: var(--ambar-fondo); }
-.c-estado.paso { background: #e3e6eb; color: var(--suave); }
+.c-hora { margin: 0 0 6px; font: 800 2rem/1 var(--rotulo); color: var(--noche); font-variant-numeric: tabular-nums; }
 
-/* Barra de 24 h: la franja del corte y la marca de "ahora" */
-.c-dia { position: relative; height: 12px; margin: 14px 0 4px; border-radius: 6px; background: #e4e8ee; overflow: hidden; }
-.c-franja { position: absolute; top: 0; bottom: 0; left: var(--ini); width: calc(var(--fin) - var(--ini)); min-width: 4px;
-  background: repeating-linear-gradient(-45deg, var(--ambar) 0 6px, #f2a900 6px 12px); }
-.c-ahora { position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1px; background: var(--noche); border-radius: 2px; }
-.c-escala { display: flex; justify-content: space-between; font: 600 .78rem/1 var(--rotulo); color: var(--suave); font-variant-numeric: tabular-nums; margin-bottom: 8px; }
 
 .c-dist { font-size: 1.35rem; margin: 6px 0 6px; }
 .c-dist a { color: var(--tinta); display: inline-flex; align-items: center; min-height: 44px; }
+.c-fuente { font-size: .9rem; color: var(--suave); margin: 0; border-top: 1px dashed var(--linea); padding-top: 4px; }
+.c-fuente a { display: inline-flex; align-items: center; min-height: 44px; }
 .c-zonas { color: var(--tinta); font-size: 1rem; overflow-wrap: anywhere; margin-bottom: .6em; }
 details.c-zonas summary { cursor: pointer; list-style: none; }
 details.c-zonas summary::-webkit-details-marker { display: none; }
 details.c-zonas summary span { display: inline-flex; align-items: center; min-height: 44px; color: var(--noche); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 details[open].c-zonas summary { display: none; }
-.c-pie { font-size: .9rem; color: var(--suave); margin: 0; border-top: 1px dashed var(--linea); padding-top: 4px; }
-.c-pie span { font-weight: 700; color: var(--tinta); }
-.c-pie a { display: inline-flex; align-items: center; min-height: 44px; }
 .vacio { background: var(--blanco); border: 1px solid var(--linea); border-radius: 10px; padding: 16px; }
 
 .bloque { margin: 40px 0; }
