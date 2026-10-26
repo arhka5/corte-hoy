@@ -23,6 +23,7 @@ HERE = Path(__file__).resolve().parent
 LIMA = timezone(timedelta(hours=-5))
 BASE_URL = "https://cortehoy.toca.pe"
 REPO = "https://github.com/arhka5/corte-hoy"
+ADSENSE = "ca-pub-6522291453297769"  # anuncios automáticos de AdSense (cuenta del dominio toca.pe)
 
 EMPRESAS = {
     "pluz": {"nombre": "Pluz Energía", "zona": "Lima norte, Lima centro y Callao",
@@ -133,7 +134,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                                      flags=re.S))
     generado = datetime.fromisoformat(datos.get("generatedAt") or ahora.isoformat())
     env.globals.update(
-        css=css, url=lambda p: p, abs=lambda p: base_url + p, empresas=EMPRESAS, repo=REPO,
+        css=css, url=lambda p: p, abs=lambda p: base_url + p, empresas=EMPRESAS, repo=REPO, adsense=ADSENSE,
         hoy=hoy.isoformat(), anio=hoy.year,
         actualizado_txt=f"{generado.day} de {MESES[generado.month - 1]}, {generado:%H:%M}",
         distritos_menu=sorted(({"slug": s, "nombre": n, "n": len(por_distrito.get(s, []))}
