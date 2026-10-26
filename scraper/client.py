@@ -6,7 +6,7 @@ import time
 
 import requests
 
-USER_AGENT = "CorteHoyBot/1.0 (+https://cortehoy.toca.pe/acerca/)"
+USER_AGENT = "Mozilla/5.0 (compatible; TocaBot/1.0)"
 TIMEOUT = 60
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
