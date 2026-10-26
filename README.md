@@ -24,4 +24,4 @@ Cortes por fallas: no se anuncian.
 
 Una petición por segundo, con un User-Agent que dice quiénes somos. Se copia el
 texto del aviso tal como lo publica la empresa y se enlaza al original.
-¿Un error? Abre un [issue](https://github.com/arhka5/corte-hoy/issues/new).
+¿Un error? Escribe a 3b3n3z3r333@gmail.com.

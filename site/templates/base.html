@@ -45,7 +45,7 @@
     <h2 class="pie-titulo">Cortes de luz por distrito</h2>
     <ul class="pie-dist">{% for d in distritos_menu %}<li><a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a></li>{% endfor %}</ul>
     <p class="pie-fuente">Datos de los avisos oficiales de {% for k, e in empresas.items() %}<a href="{{ e.url }}" rel="noopener">{{ e.nombre }}</a>{{ ' y ' if not loop.last }}{% endfor %}, actualizados el {{ actualizado_txt }}. Corte Hoy no es una empresa eléctrica: ante una emergencia o un corte no programado, llama a tu distribuidora.</p>
-    <p class="pie-links"><a href="/acerca/">Acerca y fuentes</a> · <a href="/acerca/#privacidad">Privacidad</a> · <a href="{{ repo }}/issues/new" rel="noopener">Reportar un error</a></p>
+    <p class="pie-links"><a href="/acerca/">Acerca y fuentes</a> · <a href="/acerca/#privacidad">Privacidad</a> · <a href="mailto:{{ contacto }}?subject=Corte%20Hoy%3A%20error">Reportar un error</a></p>
   </div>
 </footer>
 <script>
