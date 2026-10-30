@@ -159,8 +159,10 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
     dias = [{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": por_dia[f]} for f in sorted(por_dia)]
     hoy_n = len(por_dia.get(hoy.isoformat(), []))
     distritos_hoy = sorted({d["nombre"] for c in por_dia.get(hoy.isoformat(), []) for d in c["ds"]})
+    # la fecha en el título responde "¿para hoy?" en el resultado de Google (el build corre 00:05 Lima)
+    hoy_txt = f"{hoy.day} de {MESES[hoy.month - 1]}"
     escribir("/", "portada.html", indexable=True,
-             titulo=f"Corte de luz hoy en Lima y Callao: cortes programados {hoy.year}",
+             titulo=f"Cortes de luz programados hoy {hoy_txt} en Lima y Callao",
              descripcion=(f"Hoy hay {hoy_n} {'corte programado' if hoy_n == 1 else 'cortes programados'} de luz en Lima"
                           + (f": {', '.join(distritos_hoy[:4])}" if distritos_hoy else "")
                           + ". Horarios y calles por distrito, de Pluz y Luz del Sur." if hoy_n else
@@ -182,7 +184,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
             desc = (f"No hay cortes de luz programados publicados para {nombre} en los próximos días. "
                     "Datos de Pluz y Luz del Sur, actualizados cada 6 horas.")
         escribir(f"/distrito/{s}/", "distrito.html", indexable=True,
-                 titulo=f"Corte de luz hoy en {nombre}: horarios y calles", descripcion=desc[:160],
+                 titulo=f"Corte de luz hoy {hoy_txt} en {nombre}: horarios y calles", descripcion=desc[:160],
                  nombre=nombre, dias=dias_d, hoy_d=hoy_d)
     escribir("/acerca/", "acerca.html", indexable=True, titulo="Acerca de Corte Hoy",
              descripcion="De dónde salen los cortes programados de luz que publica Corte Hoy y cada cuánto se actualizan.")
