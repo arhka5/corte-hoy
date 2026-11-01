@@ -21,6 +21,11 @@
 
 <section class="bloque">
   <h2>Busca tu distrito</h2>
-  <ul class="distritos">{% for d in distritos_menu %}<li><a href="/distrito/{{ d.slug }}/">{{ d.nombre }}{% if d.n %} <span>{{ d.n }}</span>{% endif %}</a></li>{% endfor %}</ul>
+  <ul class="distritos">{% for d in distritos_menu if d.region == lima_region %}<li><a href="/distrito/{{ d.slug }}/">{{ d.nombre }}{% if d.n %} <span>{{ d.n }}</span>{% endif %}</a></li>{% endfor %}</ul>
+</section>
+
+<section class="bloque">
+  <h2>Cortes de luz en otras regiones</h2>
+  <ul class="distritos">{% for r in otras %}<li><a href="/region/{{ r.slug }}/">{{ r.nombre }} <small>({{ r.ciudades }})</small>{% if r.n %} <span>{{ r.n }}</span>{% endif %}</a></li>{% endfor %}</ul>
 </section>
 {% endblock %}

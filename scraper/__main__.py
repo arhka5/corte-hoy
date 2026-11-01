@@ -17,11 +17,11 @@ import traceback
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import luzdelsur, pluz
+from . import distriluz, luzdelsur, pluz
 from .client import Client
 
 LIMA = timezone(timedelta(hours=-5))
-FUENTES = {"pluz": pluz.scrape, "luzdelsur": luzdelsur.scrape}
+FUENTES = {"pluz": pluz.scrape, "luzdelsur": luzdelsur.scrape, "hidrandina": distriluz.scrape}
 DIAS_HISTORIAL = 30
 
 

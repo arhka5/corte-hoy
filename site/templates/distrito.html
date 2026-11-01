@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% from "_corte.html" import corte, compartir %}
 {% block contenido %}
-<nav class="migas" aria-label="Migas de pan"><a href="/">Inicio</a> / <span aria-current="page">{{ nombre }}</span></nav>
+<nav class="migas" aria-label="Migas de pan"><a href="/">Inicio</a> / {% if info_region %}<a href="/region/{{ info_region.slug }}/">{{ region }}</a> / {% endif %}<span aria-current="page">{{ nombre }}</span></nav>
 <section class="heroe">
-  <h1>Corte de luz hoy en {{ nombre }}</h1>
+  <h1>Corte de luz hoy en {{ nombre }}{% if info_region %} <span class="h1-region">({{ region }})</span>{% endif %}</h1>
   <p class="estado{{ ' hay' if hoy_d }}">{% if hoy_d %}Hoy hay <strong>{{ hoy_d|length }} {{ 'corte programado' if hoy_d|length == 1 else 'cortes programados' }}</strong> en {{ nombre }}.{% elif dias %}Hoy no hay cortes programados en {{ nombre }}. El próximo es el {{ dias[0].fecha_txt|lower }}.{% else %}No hay cortes programados publicados para {{ nombre }} en los próximos días.{% endif %}</p>
   <p class="heroe-texto">Revisa si tu calle aparece en la lista: un corte programado afecta solo las calles y manzanas indicadas, no todo el distrito. Actualizado el {{ actualizado_txt }}.</p>
   {{ compartir(('Corte de luz en ' ~ nombre ~ ' ' ~ hoy_d[0].fecha_larga ~ '. Horarios y calles:') if hoy_d else ('Cortes de luz programados en ' ~ nombre ~ ':'), abs(path)) }}

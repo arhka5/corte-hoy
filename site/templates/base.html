@@ -39,7 +39,7 @@
       <label class="oculto" for="dist">Tu distrito</label>
       <select id="dist" data-ir>
         <option value="">Elige tu distrito…</option>
-        {% for d in distritos_menu %}<option value="{{ d.slug }}">{{ d.nombre }}</option>{% endfor %}
+        {% for r in [lima_region] + regiones|map(attribute='nombre')|list %}<optgroup label="{{ r }}">{% for d in distritos_menu if d.region == r %}<option value="{{ d.slug }}">{{ d.nombre }}</option>{% endfor %}</optgroup>{% endfor %}
       </select>
     </div>
   </div>
@@ -50,7 +50,10 @@
 <footer class="pie">
   <div class="envoltura">
     <h2 class="pie-titulo">Cortes de luz por distrito</h2>
-    <ul class="pie-dist">{% for d in distritos_menu %}<li><a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a></li>{% endfor %}</ul>
+    {% for r in [lima_region] + regiones|map(attribute='nombre')|list %}
+    <h3 class="pie-region">{% if r == lima_region %}{{ r }}{% else %}<a href="/region/{{ (regiones|selectattr('nombre', 'equalto', r)|first).slug }}/">{{ r }}</a>{% endif %}</h3>
+    <ul class="pie-dist">{% for d in distritos_menu if d.region == r %}<li><a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a></li>{% endfor %}</ul>
+    {% endfor %}
     <p class="pie-fuente">Datos de los avisos oficiales de {% for k, e in empresas.items() %}<a href="{{ e.url }}" rel="noopener">{{ e.nombre }}</a>{{ ' y ' if not loop.last }}{% endfor %}, actualizados el {{ actualizado_txt }}. Corte Hoy no es una empresa eléctrica: ante una emergencia o un corte no programado, llama a tu distribuidora.</p>
     <p class="pie-links"><a href="/acerca/">Acerca y fuentes</a> · <a href="/acerca/#privacidad">Privacidad</a> · <a href="mailto:{{ contacto }}?subject=Corte%20Hoy%3A%20error">Reportar un error</a></p>
     <p><a class="pie-contacto" href="https://toca.pe/#contacto">Contacto</a></p>

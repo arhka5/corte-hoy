@@ -30,7 +30,18 @@ EMPRESAS = {
              "url": "https://www.pluz.pe/es/ayuda/enterate-de-los-cortes-de-luz-programados.html"},
     "luzdelsur": {"nombre": "Luz del Sur", "zona": "Lima sur y este",
                   "url": "https://www.luzdelsur.pe/es/corteluz"},
+    "hidrandina": {"nombre": "Hidrandina", "zona": "La Libertad, Áncash y Cajamarca",
+                   "url": "https://aplicaciones.distriluz.com.pe/Apps/Visits/Home/CortesProgramados"},
 }
+LIMA_REGION = "Lima y Callao"
+# Regiones fuera de Lima: página propia (/region/<slug>/) y distritos con la región en la URL
+# (/distrito/trujillo-la-libertad/), porque hay nombres repetidos (Independencia en Lima y en Huaraz).
+REGIONES = {
+    "La Libertad": {"slug": "la-libertad", "ciudades": "Trujillo", "empresas": "Hidrandina"},
+    "Áncash": {"slug": "ancash", "ciudades": "Chimbote y Huaraz", "empresas": "Hidrandina"},
+    "Cajamarca": {"slug": "cajamarca", "ciudades": "Cajamarca", "empresas": "Hidrandina"},
+}
+ALIAS_PROVINCIA = {"banos-del-inca": "los-banos-del-inca"}
 
 # Distritos con página fija (Lima Metropolitana, Callao y norte chico atendido por Pluz).
 DISTRITOS = [
@@ -75,6 +86,18 @@ def distrito(nombre_fuente: str) -> tuple[str, str]:
     bonito = " ".join(w.lower() if i and w.lower() in minus else w.capitalize()
                       for i, w in enumerate(nombre_fuente.lower().split()))
     return s, bonito
+
+
+def region_de(c: dict) -> str:
+    return c.get("region") if c["empresa"] not in ("pluz", "luzdelsur") and c.get("region") else LIMA_REGION
+
+
+def distrito_en(nombre_fuente: str, region: str) -> tuple[str, str]:
+    """Lima: el distrito tal cual. Otra región: 'trujillo-la-libertad', para no chocar con Lima."""
+    s, nombre = distrito(nombre_fuente)
+    if region == LIMA_REGION:
+        return s, nombre
+    return f"{ALIAS_PROVINCIA.get(s, s)}-{REGIONES[region]['slug']}", nombre
 
 
 def fecha_txt(iso: str, hoy: date) -> str:
@@ -123,8 +146,9 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         return f"el {DIAS[d.weekday()]} {d.day} de {MESES[d.month - 1]}"
 
     def preparar(c: dict) -> dict:
-        ds = [distrito(d) for d in c["distritos"]]
-        return {**c, "ds": [{"slug": s, "nombre": n} for s, n in ds],
+        region = region_de(c)
+        ds = [distrito_en(d, region) for d in c["distritos"]]
+        return {**c, "region": region, "ds": [{"slug": s, "nombre": n} for s, n in ds],
                 "distritos_txt": " y ".join(n for _, n in ds),
                 "fecha_txt": fecha_txt(c["fecha"], hoy), "fecha_larga": fecha_larga(c["fecha"]),
                 "zonas_txt": zonas_txt(c.get("zonas", "")),
@@ -141,14 +165,19 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         for d in c["ds"]:
             historial_distrito[d["slug"]].append(c)
     nombres = dict(CANON)
+    region_distrito = {s: LIMA_REGION for s in CANON}
     # también los distritos que solo están en el historial: su página no desaparece de un día para otro
     for c in cortes + pasados:
         for d in c["ds"]:
             nombres.setdefault(d["slug"], d["nombre"])
+            region_distrito.setdefault(d["slug"], c["region"])
     cortes.sort(key=lambda c: (c["fecha"], c["inicio"], c["ds"][0]["nombre"]))
+    # Portada, /manana/ y /dia/ son de Lima y Callao; cada región tiene su página
     por_dia = defaultdict(list)
     for c in cortes:
-        por_dia[c["fecha"]].append(c)
+        if c["region"] == LIMA_REGION:
+            por_dia[c["fecha"]].append(c)
+    orden_region = [LIMA_REGION, *REGIONES]
 
     env = Environment(loader=FileSystemLoader(HERE / "templates"), autoescape=select_autoescape(["html", "xml"]),
                       trim_blocks=True, lstrip_blocks=True)
@@ -159,8 +188,10 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         css=css, url=lambda p: p, abs=lambda p: base_url + p, empresas=EMPRESAS, contacto=CONTACTO, adsense=ADSENSE,
         hoy=hoy.isoformat(), anio=hoy.year,
         actualizado_txt=f"{generado.day} de {MESES[generado.month - 1]}, {generado:%H:%M}",
-        distritos_menu=sorted(({"slug": s, "nombre": n, "n": len(por_distrito.get(s, []))}
-                               for s, n in nombres.items()), key=lambda d: sin_tildes(d["nombre"])),
+        distritos_menu=sorted(({"slug": s, "nombre": n, "n": len(por_distrito.get(s, [])), "region": region_distrito[s]}
+                               for s, n in nombres.items()),
+                              key=lambda d: (orden_region.index(d["region"]), sin_tildes(d["nombre"]))),
+        regiones=[{"nombre": r, **v} for r, v in REGIONES.items()], lima_region=LIMA_REGION,
         fuentes=datos.get("sources", {}),
     )
     if out.exists():
@@ -199,13 +230,40 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                              " Revisa los próximos días por distrito.")
                           + " Horarios y calles, de Pluz y Luz del Sur."),
              dias=dias, hoy_n=hoy_n, total=len(cortes),
-             distritos_hoy=distritos_del_dia(hoy), distritos_manana=distritos_del_dia(hoy + timedelta(days=1)))
+             distritos_hoy=distritos_del_dia(hoy), distritos_manana=distritos_del_dia(hoy + timedelta(days=1)),
+             otras=[{"nombre": r, **v, "n": sum(1 for c in cortes if c["region"] == r)} for r, v in REGIONES.items()])
+
+    # Regiones fuera de Lima: "Cortes de luz programados hoy 1 de noviembre en La Libertad (Trujillo)"
+    for r, info in REGIONES.items():
+        lista_r = [c for c in cortes if c["region"] == r]
+        dias_r = defaultdict(list)
+        for c in lista_r:
+            dias_r[c["fecha"]].append(c)
+
+        def distritos_r(fecha: date) -> list[dict]:
+            vistos = {d["slug"]: d for c in dias_r.get(fecha.isoformat(), []) for d in c["ds"]}
+            return sorted(vistos.values(), key=lambda d: sin_tildes(d["nombre"]))
+        hoy_r = dias_r.get(hoy.isoformat(), [])
+        nombres_hoy = [d["nombre"] for d in distritos_r(hoy)]
+        desc = (f"Hoy hay {len(hoy_r)} {'corte programado' if len(hoy_r) == 1 else 'cortes programados'} de luz en {r}: "
+                + ", ".join(nombres_hoy[:4]) + f". Horarios y sectores afectados, de {info['empresas']}." if hoy_r else
+                f"Cortes de luz programados en {r} ({info['ciudades']}): {len(lista_r)} en los próximos días, con "
+                f"horarios y sectores afectados, de {info['empresas']}." if lista_r else
+                f"Hoy no hay cortes de luz programados publicados en {r}. Datos de {info['empresas']}, revisados cada 2 horas.")
+        escribir(f"/region/{info['slug']}/", "region.html", indexable=True,
+                 titulo=f"Cortes de luz programados hoy {hoy_txt} en {r} ({info['ciudades']})",
+                 descripcion=desc[:160], region=r, info=info,
+                 dias=[{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": dias_r[f]} for f in sorted(dias_r)],
+                 hoy_n=len(hoy_r), distritos_hoy=distritos_r(hoy),
+                 distritos_manana=distritos_r(hoy + timedelta(days=1)),
+                 distritos_region=[d for d in env.globals["distritos_menu"] if d["region"] == r])
 
     # Páginas por fecha: /manana/ (URL fija que acumula posicionamiento para "corte de luz mañana") y
     # /dia/AAAA-MM-DD/ ("corte de luz 3 de noviembre"). Las fechas pasadas siguen DIAS del historial (noindex).
     por_dia_pasado = defaultdict(list)
     for c in sorted(pasados, key=lambda c: (c["inicio"], c["ds"][0]["nombre"])):
-        por_dia_pasado[c["fecha"]].append(c)
+        if c["region"] == LIMA_REGION:
+            por_dia_pasado[c["fecha"]].append(c)
     fechas = sorted(set(por_dia) | set(por_dia_pasado))
 
     def pagina_dia(path: str, f: str, indexable: bool):
@@ -236,19 +294,23 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         dias_d = [{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": [c for c in lista if c["fecha"] == f]}
                   for f in sorted({c["fecha"] for c in lista})]
         ultimo = f" Último corte: {recientes[0]['fecha_txt'].lower()}." if recientes else ""
+        region = region_distrito[s]
+        en_lima = region == LIMA_REGION
+        empresas_r = "Pluz y Luz del Sur" if en_lima else REGIONES[region]["empresas"]
+        lugar = nombre if en_lima else f"{nombre} ({region})"
         if hoy_d:
-            desc = (f"Hoy hay {len(hoy_d)} {'corte' if len(hoy_d) == 1 else 'cortes'} de luz programados en {nombre}: "
+            desc = (f"Hoy hay {len(hoy_d)} {'corte' if len(hoy_d) == 1 else 'cortes'} de luz programados en {lugar}: "
                     + ", ".join(f"de {c['inicio']} a {c['fin']}" for c in hoy_d[:3]) + ". Calles afectadas y próximos cortes.")
         elif lista:
-            desc = (f"Hoy no hay cortes de luz programados en {nombre}. Próximo corte: {dias_d[0]['fecha_txt'].lower()}, "
+            desc = (f"Hoy no hay cortes de luz programados en {lugar}. Próximo corte: {dias_d[0]['fecha_txt'].lower()}, "
                     f"de {lista[0]['inicio']} a {lista[0]['fin']}. Calles afectadas.")
         else:
-            desc = (f"No hay cortes de luz programados publicados para {nombre} en los próximos días.{ultimo} "
-                    "Datos de Pluz y Luz del Sur, actualizados cada 2 horas.")
+            desc = (f"No hay cortes de luz programados publicados para {lugar} en los próximos días.{ultimo} "
+                    f"Datos de {empresas_r}, actualizados cada 2 horas.")
         escribir(f"/distrito/{s}/", "distrito.html", indexable=True,
-                 titulo=f"Corte de luz hoy {hoy_txt} en {nombre}: horarios y calles", descripcion=desc[:160],
-                 nombre=nombre, dias=dias_d, hoy_d=hoy_d, recientes=recientes[:MAX_HISTORIAL],
-                 n_recientes=len(recientes))
+                 titulo=f"Corte de luz hoy {hoy_txt} en {lugar}: horarios y calles", descripcion=desc[:160],
+                 nombre=nombre, region=region, info_region=None if en_lima else REGIONES[region],
+                 dias=dias_d, hoy_d=hoy_d, recientes=recientes[:MAX_HISTORIAL], n_recientes=len(recientes))
     escribir("/acerca/", "acerca.html", indexable=True, titulo="Acerca de Corte Hoy",
              descripcion="De dónde salen los cortes programados de luz que publica Corte Hoy y cada cuánto se actualizan.")
     (out / "404.html").write_text(env.get_template("404.html").render(

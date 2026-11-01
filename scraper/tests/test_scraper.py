@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scraper import luzdelsur, pluz
+from scraper import distriluz, luzdelsur, pluz
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -31,6 +31,30 @@ def test_luz_del_sur_vacio_y_tolerante():
         "2026-10-26")
     assert c[0]["distritos"] == ["Surco"] and c[0]["fecha"] == "2026-10-27"
     assert (c[0]["inicio"], c[0]["fin"]) == ("09:00", "13:00")
+
+
+def test_hidrandina_pagina_real():
+    # página del 1-nov-2026: tres pestañas, fechas con "." y "/", rowspan y tablas dentro de tablas
+    cortes = distriluz.parse((FIX / "distriluz_2026-11-01.html").read_text(encoding="utf-8"))
+    assert len(cortes) == 44
+    assert {c["region"] for c in cortes} == {"La Libertad", "Áncash", "Cajamarca"}
+    assert all(c["inicio"] and c["fin"] for c in cortes)
+    primero = cortes[0]
+    assert (primero["fecha"], primero["inicio"], primero["fin"], primero["distritos"]) == \
+        ("2026-10-30", "09:00", "12:00", ["Trujillo"])
+    assert primero["zonas"].startswith("Sector Ex Fundo Larrea:")
+    # "12:00 m." es mediodía; "3:00 p.m." pasa a 15:00
+    laredo = [c for c in cortes if c["distritos"] == ["Laredo"]]
+    assert ("09:00", "12:00") in {(c["inicio"], c["fin"]) for c in laredo}
+    assert ("15:00", "18:00") in {(c["inicio"], c["fin"]) for c in laredo}
+
+
+def test_hidrandina_distrito_sin_la_provincia():
+    assert distriluz.distritos_de("Huaraz/ Pira", "Áncash") == ["Pira"]  # provincia/distrito
+    assert distriluz.distritos_de("Jesús/Cajamarca", "Cajamarca") == ["Jesús"]  # distrito/provincia
+    assert distriluz.distritos_de("Chimbote/Santa", "Áncash") == ["Chimbote"]
+    assert distriluz.distritos_de("Cajamarca/Cajamarca", "Cajamarca") == ["Cajamarca"]
+    assert distriluz.distritos_de("Aczo, San Juan Rontoy, Chingas", "Áncash") == ["Aczo", "San Juan Rontoy", "Chingas"]
 
 
 def test_luz_del_sur_formato_real():

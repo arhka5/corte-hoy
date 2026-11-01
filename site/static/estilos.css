@@ -101,6 +101,9 @@ details[open].c-zonas summary { display: none; }
 .heroe > .c-wa { margin-top: 14px; }
 .dias-nav { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; }
 .dias-nav a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
+.h1-region { font-size: .55em; color: var(--suave); white-space: nowrap; }
+.distritos small { font-weight: 400; color: var(--suave); }
+.pie-region { font-size: 1rem; margin: 14px 0 6px; }
 /* Distrito: cortes de los últimos 30 días */
 .r-lista { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
 .r-lista li { background: var(--blanco); border: 1px solid var(--linea); border-radius: 8px; padding: 10px 14px 4px; }
