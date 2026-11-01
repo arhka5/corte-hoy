@@ -89,6 +89,18 @@ details[open].c-zonas summary { display: none; }
 .chips-tit { font: 700 1rem var(--rotulo); color: var(--suave); margin-right: 2px; }
 .chips a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 999px; color: var(--tinta); font-weight: 700; text-decoration: none; }
 .chips a:hover { border-color: var(--noche); }
+.chips-tit a.chips-dia { color: var(--noche); }
+.dia-enlace { color: inherit; text-decoration: none; }
+.dia-enlace:hover { text-decoration: underline; }
+/* Compartir por WhatsApp: el aviso viaja al grupo de la familia o de los vecinos */
+.c-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; border-top: 1px dashed var(--linea); }
+.c-pie .c-fuente { border-top: 0; padding-top: 0; }
+.c-wa { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; margin: 6px 0; border-radius: 999px; background: #1f7a4d; color: #fff; font-weight: 700; text-decoration: none; }
+.c-wa:hover { background: #17603c; }
+.c-wa svg { width: 18px; height: 18px; flex: none; }
+.heroe > .c-wa { margin-top: 14px; }
+.dias-nav { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; }
+.dias-nav a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
 /* Distrito: cortes de los últimos 30 días */
 .r-lista { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
 .r-lista li { background: var(--blanco); border: 1px solid var(--linea); border-radius: 8px; padding: 10px 14px 4px; }

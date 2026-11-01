@@ -86,6 +86,13 @@ def fecha_txt(iso: str, hoy: date) -> str:
     return f"{DIAS[d.weekday()].capitalize()} {d.day} de {MESES[d.month - 1]}"
 
 
+def titulo_dia(iso: str, hoy: date) -> str:
+    """Como lo busca la gente (y como titulan RPP o El Comercio): con 'hoy'/'mañana' y la fecha."""
+    d = date.fromisoformat(iso)
+    cuando = {hoy: "hoy ", hoy + timedelta(days=1): "mañana "}.get(d, "el ")
+    return f"Corte de luz {cuando}{DIAS[d.weekday()]} {d.day} de {MESES[d.month - 1]} en Lima y Callao"
+
+
 def zonas_txt(t: str) -> str:
     """Texto de la fuente en mayúsculas -> legible, sin inventar nada."""
     t = re.sub(r"\s+", " ", t).strip().rstrip(".")
@@ -110,11 +117,17 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
     ahora = datetime.now(LIMA)
     hoy = ahora.date()
     base_url = base_url.rstrip("/")
+    def fecha_larga(iso: str) -> str:
+        """'el lunes 2 de noviembre': sin 'hoy'/'mañana', para mensajes que se reenvían y se leen después."""
+        d = date.fromisoformat(iso)
+        return f"el {DIAS[d.weekday()]} {d.day} de {MESES[d.month - 1]}"
+
     def preparar(c: dict) -> dict:
         ds = [distrito(d) for d in c["distritos"]]
         return {**c, "ds": [{"slug": s, "nombre": n} for s, n in ds],
                 "distritos_txt": " y ".join(n for _, n in ds),
-                "fecha_txt": fecha_txt(c["fecha"], hoy), "zonas_txt": zonas_txt(c.get("zonas", "")),
+                "fecha_txt": fecha_txt(c["fecha"], hoy), "fecha_larga": fecha_larga(c["fecha"]),
+                "zonas_txt": zonas_txt(c.get("zonas", "")),
                 "empresa_txt": EMPRESAS[c["empresa"]]["nombre"]}
 
     cortes = [preparar(c) for c in datos.get("cortes", []) if c["fecha"] >= hoy.isoformat()]
@@ -187,6 +200,35 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                           + " Horarios y calles, de Pluz y Luz del Sur."),
              dias=dias, hoy_n=hoy_n, total=len(cortes),
              distritos_hoy=distritos_del_dia(hoy), distritos_manana=distritos_del_dia(hoy + timedelta(days=1)))
+
+    # Páginas por fecha: /manana/ (URL fija que acumula posicionamiento para "corte de luz mañana") y
+    # /dia/AAAA-MM-DD/ ("corte de luz 3 de noviembre"). Las fechas pasadas siguen DIAS del historial (noindex).
+    por_dia_pasado = defaultdict(list)
+    for c in sorted(pasados, key=lambda c: (c["inicio"], c["ds"][0]["nombre"])):
+        por_dia_pasado[c["fecha"]].append(c)
+    fechas = sorted(set(por_dia) | set(por_dia_pasado))
+
+    def pagina_dia(path: str, f: str, indexable: bool):
+        lista = por_dia.get(f) or por_dia_pasado.get(f, [])
+        dist = sorted({d["slug"]: d for c in lista for d in c["ds"]}.values(), key=lambda d: sin_tildes(d["nombre"]))
+        nombres_d = [d["nombre"] for d in dist]
+        i = fechas.index(f) if f in fechas else None
+        titulo = titulo_dia(f, hoy)
+        if not lista:
+            desc = f"{titulo}: no hay cortes de luz programados publicados por Pluz ni Luz del Sur (por ahora)."
+        else:
+            desc = (f"{len(lista)} {'corte programado' if len(lista) == 1 else 'cortes programados'}: "
+                    + ", ".join(nombres_d[:5]) + (" y más" if len(nombres_d) > 5 else "")
+                    + ". Horarios y calles afectadas, de Pluz y Luz del Sur.")
+        escribir(path, "dia.html", indexable=indexable, titulo=titulo + (": distritos y horarios" if lista else ""),
+                 descripcion=desc[:160], h1=titulo, fecha=f, fecha_txt=fecha_txt(f, hoy),
+                 fecha_larga=fecha_larga(f), cortes=lista,
+                 distritos=dist, pasado=f < hoy.isoformat(),
+                 anterior=fechas[i - 1] if i else None, siguiente=fechas[i + 1] if i is not None and i + 1 < len(fechas) else None)
+
+    pagina_dia("/manana/", (hoy + timedelta(days=1)).isoformat(), True)
+    for f in fechas:
+        pagina_dia(f"/dia/{f}/", f, f >= hoy.isoformat())
     for s, nombre in nombres.items():
         lista = por_distrito.get(s, [])
         recientes = historial_distrito.get(s, [])

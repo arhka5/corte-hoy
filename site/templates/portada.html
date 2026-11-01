@@ -4,15 +4,15 @@
 <section class="heroe">
   <h1>Cortes de luz programados en Lima y Callao</h1>
   <p class="estado{{ ' hay' if hoy_n }}">{% if hoy_n %}Hoy hay <strong>{{ hoy_n }} {{ 'corte programado' if hoy_n == 1 else 'cortes programados' }}</strong>.{% else %}Hoy no hay cortes programados publicados.{% endif %}</p>
-  {% for etiqueta, lista in [('Hoy', distritos_hoy), ('Mañana', distritos_manana)] if lista %}
-  <p class="chips"><span class="chips-tit">{{ etiqueta }} en:</span>{% for d in lista %} <a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a>{% endfor %}</p>
+  {% for etiqueta, lista, enlace in [('Hoy', distritos_hoy, ''), ('Mañana', distritos_manana, '/manana/')] if lista %}
+  <p class="chips"><span class="chips-tit">{% if enlace %}<a class="chips-dia" href="{{ enlace }}">{{ etiqueta }}</a>{% else %}{{ etiqueta }}{% endif %} en:</span>{% for d in lista %} <a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a>{% endfor %}</p>
   {% endfor %}
   <p class="heroe-texto">Juntamos los avisos de mantenimiento de Pluz (Lima norte, centro y Callao) y Luz del Sur (Lima sur y este) en una sola lista por día y por distrito. Elige tu distrito arriba para ver solo lo tuyo. Actualizado el {{ actualizado_txt }}.</p>
 </section>
 
 {% for d in dias %}
 <section class="dia">
-  <h2>{{ d.fecha_txt }}</h2>
+  <h2><a class="dia-enlace" href="/dia/{{ d.fecha }}/">{{ d.fecha_txt }}</a></h2>
   <div class="cortes">{% for c in d.cortes %}{{ corte(c) }}{% endfor %}</div>
 </section>
 {% else %}

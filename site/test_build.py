@@ -2,7 +2,16 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from build import distrito, zonas_txt  # noqa: E402
+from datetime import date  # noqa: E402
+
+from build import distrito, titulo_dia, zonas_txt  # noqa: E402
+
+
+def test_titulo_por_fecha_como_se_busca():
+    hoy = date(2026, 11, 1)
+    assert titulo_dia("2026-11-01", hoy) == "Corte de luz hoy domingo 1 de noviembre en Lima y Callao"
+    assert titulo_dia("2026-11-02", hoy) == "Corte de luz mañana lunes 2 de noviembre en Lima y Callao"
+    assert titulo_dia("2026-11-04", hoy) == "Corte de luz el miércoles 4 de noviembre en Lima y Callao"
 
 
 def test_distritos_canonicos():
