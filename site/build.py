@@ -19,6 +19,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+import og
+
 HERE = Path(__file__).resolve().parent
 LIMA = timezone(timedelta(hours=-5))
 BASE_URL = "https://cortehoy.toca.pe"
@@ -109,6 +111,12 @@ def fecha_txt(iso: str, hoy: date) -> str:
     return f"{DIAS[d.weekday()].capitalize()} {d.day} de {MESES[d.month - 1]}"
 
 
+def fecha_abs(iso: str) -> str:
+    """'Domingo 1 de noviembre' (sin 'hoy'/'mañana': para mensajes e imágenes que se ven después)."""
+    d = date.fromisoformat(iso)
+    return f"{DIAS[d.weekday()].capitalize()} {d.day} de {MESES[d.month - 1]}"
+
+
 def titulo_dia(iso: str, hoy: date) -> str:
     """Como lo busca la gente (y como titulan RPP o El Comercio): con 'hoy'/'mañana' y la fecha."""
     d = date.fromisoformat(iso)
@@ -151,6 +159,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         return {**c, "region": region, "ds": [{"slug": s, "nombre": n} for s, n in ds],
                 "distritos_txt": " y ".join(n for _, n in ds),
                 "fecha_txt": fecha_txt(c["fecha"], hoy), "fecha_larga": fecha_larga(c["fecha"]),
+                "fecha_abs": fecha_abs(c["fecha"]),
                 "zonas_txt": zonas_txt(c.get("zonas", "")),
                 "empresa_txt": EMPRESAS[c["empresa"]]["nombre"]}
 
@@ -199,7 +208,12 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
     out.mkdir(parents=True)
     paginas = []
 
-    def escribir(path: str, plantilla: str, **ctx):
+    def escribir(path: str, plantilla: str, imagen: tuple | None = None, **ctx):
+        """imagen = (título, dato, nota, hay_corte): vista previa propia para WhatsApp/Facebook en /og/."""
+        if imagen:
+            nombre = path.strip("/").replace("/", "-") or "portada"
+            og.imagen(out / "og" / f"{nombre}.png", *imagen)
+            ctx["og_imagen"] = f"/og/{nombre}.png"
         html = env.get_template(plantilla).render(path=path, canonical=base_url + path, **ctx)
         destino = out / path.strip("/") / "index.html" if path.endswith("/") else out / path.strip("/")
         if out.resolve() not in destino.resolve().parents:
@@ -231,7 +245,11 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                           + " Horarios y calles, de Pluz y Luz del Sur."),
              dias=dias, hoy_n=hoy_n, total=len(cortes),
              distritos_hoy=distritos_del_dia(hoy), distritos_manana=distritos_del_dia(hoy + timedelta(days=1)),
-             otras=[{"nombre": r, **v, "n": sum(1 for c in cortes if c["region"] == r)} for r, v in REGIONES.items()])
+             otras=[{"nombre": r, **v, "n": sum(1 for c in cortes if c["region"] == r)} for r, v in REGIONES.items()],
+             imagen=("Cortes de luz hoy en Lima y Callao",
+                     f"{fecha_abs(hoy.isoformat())}: {hoy_n} {'corte' if hoy_n == 1 else 'cortes'}" if hoy_n else
+                     f"{fecha_abs(hoy.isoformat())}: sin cortes programados",
+                     "cortehoy.toca.pe · Horarios y calles por distrito", hoy_n > 0))
 
     # Regiones fuera de Lima: "Cortes de luz programados hoy 1 de noviembre en La Libertad (Trujillo)"
     for r, info in REGIONES.items():
@@ -256,7 +274,11 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                  dias=[{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": dias_r[f]} for f in sorted(dias_r)],
                  hoy_n=len(hoy_r), distritos_hoy=distritos_r(hoy),
                  distritos_manana=distritos_r(hoy + timedelta(days=1)),
-                 distritos_region=[d for d in env.globals["distritos_menu"] if d["region"] == r])
+                 distritos_region=[d for d in env.globals["distritos_menu"] if d["region"] == r],
+                 imagen=(f"Cortes de luz en {r}",
+                         f"{fecha_abs(hoy.isoformat())}: {len(hoy_r)} {'corte' if len(hoy_r) == 1 else 'cortes'}" if hoy_r else
+                         f"{len(lista_r)} en los próximos días" if lista_r else "Sin cortes programados",
+                         f"cortehoy.toca.pe · {info['ciudades']} y alrededores", bool(hoy_r or lista_r)))
 
     # Páginas por fecha: /manana/ (URL fija que acumula posicionamiento para "corte de luz mañana") y
     # /dia/AAAA-MM-DD/ ("corte de luz 3 de noviembre"). Las fechas pasadas siguen DIAS del historial (noindex).
@@ -282,6 +304,10 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                  descripcion=desc[:160], h1=titulo, fecha=f, fecha_txt=fecha_txt(f, hoy),
                  fecha_larga=fecha_larga(f), cortes=lista,
                  distritos=dist, pasado=f < hoy.isoformat(),
+                 imagen=(f"Corte de luz {fecha_larga(f)} en Lima",
+                         f"{len(lista)} {'corte' if len(lista) == 1 else 'cortes'} en {len(dist)} "
+                         f"{'distrito' if len(dist) == 1 else 'distritos'}" if lista else "Sin cortes programados",
+                         "cortehoy.toca.pe · Horarios y calles por distrito", bool(lista)),
                  anterior=fechas[i - 1] if i else None, siguiente=fechas[i + 1] if i is not None and i + 1 < len(fechas) else None)
 
     pagina_dia("/manana/", (hoy + timedelta(days=1)).isoformat(), True)
@@ -299,7 +325,15 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         empresas_r = "Pluz y Luz del Sur" if en_lima else REGIONES[region]["empresas"]
         lugar = nombre if en_lima else f"{nombre} ({region})"
         if hoy_d:
-            desc = (f"Hoy hay {len(hoy_d)} {'corte' if len(hoy_d) == 1 else 'cortes'} de luz programados en {lugar}: "
+            # fecha completa, no "hoy": la vista previa queda pegada al mensaje y se lee después
+            dato_img = (f"{hoy_d[0]['fecha_abs']} · {hoy_d[0]['inicio']} a {hoy_d[0]['fin']}"
+                        + (f" (+{len(hoy_d) - 1})" if len(hoy_d) > 1 else ""))
+        elif lista:
+            dato_img = f"Próximo: {lista[0]['fecha_abs']} · {lista[0]['inicio']} a {lista[0]['fin']}"
+        else:
+            dato_img = "Sin cortes programados"
+        if hoy_d:
+            desc = (f"Hoy hay {len(hoy_d)} {'corte de luz programado' if len(hoy_d) == 1 else 'cortes de luz programados'} en {lugar}: "
                     + ", ".join(f"de {c['inicio']} a {c['fin']}" for c in hoy_d[:3]) + ". Calles afectadas y próximos cortes.")
         elif lista:
             desc = (f"Hoy no hay cortes de luz programados en {lugar}. Próximo corte: {dias_d[0]['fecha_txt'].lower()}, "
@@ -310,7 +344,9 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         escribir(f"/distrito/{s}/", "distrito.html", indexable=True,
                  titulo=f"Corte de luz hoy {hoy_txt} en {lugar}: horarios y calles", descripcion=desc[:160],
                  nombre=nombre, region=region, info_region=None if en_lima else REGIONES[region],
-                 dias=dias_d, hoy_d=hoy_d, recientes=recientes[:MAX_HISTORIAL], n_recientes=len(recientes))
+                 dias=dias_d, hoy_d=hoy_d, recientes=recientes[:MAX_HISTORIAL], n_recientes=len(recientes),
+                 imagen=(f"Corte de luz en {nombre}", dato_img,
+                         "cortehoy.toca.pe · Horarios y calles" + ("" if en_lima else f" · {region}"), bool(hoy_d or lista)))
     escribir("/acerca/", "acerca.html", indexable=True, titulo="Acerca de Corte Hoy",
              descripcion="De dónde salen los cortes programados de luz que publica Corte Hoy y cada cuánto se actualizan.")
     (out / "404.html").write_text(env.get_template("404.html").render(

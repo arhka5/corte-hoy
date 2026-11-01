@@ -7,7 +7,7 @@
   <p class="estado{{ ' hay' if cortes }}">{% if cortes %}{{ 'Hubo' if pasado else 'Hay' }} <strong>{{ cortes|length }} {{ 'corte programado' if cortes|length == 1 else 'cortes programados' }}</strong>{% if distritos|length > 1 %} en {{ distritos|length }} distritos{% endif %}.{% elif pasado %}No hubo cortes programados publicados ese día.{% else %}Por ahora no hay cortes programados publicados.{% endif %}</p>
   {% if distritos %}<p class="chips"><span class="chips-tit">Distritos:</span>{% for d in distritos %} <a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a>{% endfor %}</p>{% endif %}
   <p class="heroe-texto">{% if pasado %}Este día ya pasó: lo dejamos como referencia.{% else %}Revisa si tu calle aparece: un corte programado afecta solo las calles y manzanas indicadas, no todo el distrito.{% endif %} Actualizado el {{ actualizado_txt }}.</p>
-  {% if cortes and not pasado %}{{ compartir('Cortes de luz programados ' ~ fecha_larga ~ ' en ' ~ distritos|map(attribute='nombre')|join(', ') ~ '. Horarios y calles:', abs('/dia/' ~ fecha ~ '/')) }}{% endif %}
+  {% if cortes and not pasado %}{{ compartir('Cortes de luz programados ' ~ fecha_larga ~ ' en Lima', distritos|map(attribute='nombre')|join(', '), abs('/dia/' ~ fecha ~ '/')) }}{% endif %}
 </section>
 
 {% if cortes %}
