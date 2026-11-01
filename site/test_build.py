@@ -10,6 +10,8 @@ def test_distritos_canonicos():
     assert distrito("LIMA CERCADO") == ("lima-cercado", "Lima Cercado")
     assert distrito("JESUS MARIA") == ("jesus-maria", "Jesús María")
     assert distrito("SAN ANTONIO DE CHACLLA") == ("san-antonio-de-chaclla", "San Antonio de Chaclla")
+    # Luz del Sur escribe el distrito con su capital
+    assert distrito("LURIGANCHO-CHOSICA") == ("lurigancho", "Lurigancho")
 
 
 def test_zonas_legibles_sin_cambiar_datos():

@@ -25,8 +25,23 @@ def test_enlaces_pdf():
 
 
 def test_luz_del_sur_vacio_y_tolerante():
-    assert luzdelsur.parse({"success": True, "datos": {"listado": []}}) == []
+    assert luzdelsur.parse({"success": True, "datos": {"listado": []}}, "2026-10-27") == []
     c = luzdelsur.parse({"success": True, "datos": {"listado": [
-        {"NombreDistrito": "Surco", "FechaCorte": "27/10/2026", "HoraInicio": "9:00", "HoraFin": "13:00"}]}})
+        {"NombreDistrito": "Surco", "FechaCorte": "27/10/2026", "HoraInicio": "9:00", "HoraFin": "13:00"}]}},
+        "2026-10-26")
     assert c[0]["distritos"] == ["Surco"] and c[0]["fecha"] == "2026-10-27"
     assert (c[0]["inicio"], c[0]["fin"]) == ("09:00", "13:00")
+
+
+def test_luz_del_sur_formato_real():
+    # respuesta real del 1-nov-2026: solo distrito y horario (AM/PM), sin fecha (= hoy) ni calles
+    c = luzdelsur.parse({"success": True, "datos": {"codeHTTP": 200, "codigo": "0", "listado": [
+        {"distrito": "LURIGANCHO-CHOSICA", "horario": "06:30 AM a 05:15 PM"},
+        {"distrito": "SURCO", "horario": "12:00 PM a 12:30 AM"}]}}, "2026-11-01")
+    assert c[0]["distritos"] == ["LURIGANCHO-CHOSICA"] and c[0]["fecha"] == "2026-11-01"
+    assert (c[0]["inicio"], c[0]["fin"]) == ("06:30", "17:15")
+    assert (c[1]["inicio"], c[1]["fin"]) == ("12:00", "00:30")
+    assert c[0]["zonas"] == ""
+    # sin AM/PM, la "a" de "12:00 a 13:00" no se lee como "AM"
+    assert luzdelsur._horario("12:00 a 13:00") == ("12:00", "13:00")
+    assert luzdelsur._horario("9:00 a.m. a 1:30 p.m.") == ("09:00", "13:30")

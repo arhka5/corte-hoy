@@ -58,8 +58,12 @@ def slug(t: str) -> str:
 
 
 CANON = {slug(d): d for d in DISTRITOS}
-ALIAS = {"cercado-de-lima": "lima-cercado", "lima": "lima-cercado", "surco": "santiago-de-surco",
-         "magdalena": "magdalena-del-mar", "sjl": "san-juan-de-lurigancho", "smp": "san-martin-de-porres"}
+ALIAS = {"cercado-de-lima": "lima-cercado", "lima": "lima-cercado", "cercado": "lima-cercado",
+         "surco": "santiago-de-surco", "magdalena": "magdalena-del-mar", "sjl": "san-juan-de-lurigancho",
+         "smp": "san-martin-de-porres",
+         # Luz del Sur escribe el distrito con su capital: "LURIGANCHO-CHOSICA"
+         "lurigancho-chosica": "lurigancho", "chosica": "lurigancho"}
+MAX_HISTORIAL = 15  # cortes recientes que se muestran por distrito
 
 
 def distrito(nombre_fuente: str) -> tuple[str, str]:
@@ -106,21 +110,26 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
     ahora = datetime.now(LIMA)
     hoy = ahora.date()
     base_url = base_url.rstrip("/")
-    cortes = []
-    for c in datos.get("cortes", []):
-        if c["fecha"] < hoy.isoformat():
-            continue
+    def preparar(c: dict) -> dict:
         ds = [distrito(d) for d in c["distritos"]]
-        cortes.append({**c, "ds": [{"slug": s, "nombre": n} for s, n in ds],
-                       "distritos_txt": " y ".join(n for _, n in ds),
-                       "fecha_txt": fecha_txt(c["fecha"], hoy), "zonas_txt": zonas_txt(c.get("zonas", "")),
-                       "empresa_txt": EMPRESAS[c["empresa"]]["nombre"]})
+        return {**c, "ds": [{"slug": s, "nombre": n} for s, n in ds],
+                "distritos_txt": " y ".join(n for _, n in ds),
+                "fecha_txt": fecha_txt(c["fecha"], hoy), "zonas_txt": zonas_txt(c.get("zonas", "")),
+                "empresa_txt": EMPRESAS[c["empresa"]]["nombre"]}
+
+    cortes = [preparar(c) for c in datos.get("cortes", []) if c["fecha"] >= hoy.isoformat()]
+    pasados = [preparar(c) for c in datos.get("historial", []) if c["fecha"] < hoy.isoformat()]
     por_distrito = defaultdict(list)
     for c in cortes:
         for d in c["ds"]:
             por_distrito[d["slug"]].append(c)
+    historial_distrito = defaultdict(list)
+    for c in sorted(pasados, key=lambda c: (c["fecha"], c["inicio"]), reverse=True):
+        for d in c["ds"]:
+            historial_distrito[d["slug"]].append(c)
     nombres = dict(CANON)
-    for c in cortes:
+    # también los distritos que solo están en el historial: su página no desaparece de un día para otro
+    for c in cortes + pasados:
         for d in c["ds"]:
             nombres.setdefault(d["slug"], d["nombre"])
     cortes.sort(key=lambda c: (c["fecha"], c["inicio"], c["ds"][0]["nombre"]))
@@ -159,21 +168,32 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
     dias = [{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": por_dia[f]} for f in sorted(por_dia)]
     hoy_n = len(por_dia.get(hoy.isoformat(), []))
     distritos_hoy = sorted({d["nombre"] for c in por_dia.get(hoy.isoformat(), []) for d in c["ds"]})
+
+    def distritos_del_dia(fecha: date) -> list[dict]:
+        vistos = {d["slug"]: d for c in por_dia.get(fecha.isoformat(), []) for d in c["ds"]}
+        return sorted(vistos.values(), key=lambda d: sin_tildes(d["nombre"]))
     # la fecha en el título responde "¿para hoy?" en el resultado de Google (el build corre 00:05 Lima)
     hoy_txt = f"{hoy.day} de {MESES[hoy.month - 1]}"
+    manana = distritos_del_dia(hoy + timedelta(days=1))
+    manana_n = len(por_dia.get((hoy + timedelta(days=1)).isoformat(), []))
     escribir("/", "portada.html", indexable=True,
              titulo=f"Cortes de luz programados hoy {hoy_txt} en Lima y Callao",
              descripcion=(f"Hoy hay {hoy_n} {'corte programado' if hoy_n == 1 else 'cortes programados'} de luz en Lima"
                           + (f": {', '.join(distritos_hoy[:4])}" if distritos_hoy else "")
                           + ". Horarios y calles por distrito, de Pluz y Luz del Sur." if hoy_n else
-                          "Hoy no hay cortes de luz programados publicados en Lima y Callao. Revisa los próximos días "
-                          "por distrito, con horarios y calles, de Pluz y Luz del Sur."),
-             dias=dias, hoy_n=hoy_n, total=len(cortes))
+                          "Hoy no hay cortes de luz programados publicados en Lima y Callao."
+                          + (f" Mañana hay {manana_n} en {', '.join(d['nombre'] for d in manana[:3])}." if manana_n else
+                             " Revisa los próximos días por distrito.")
+                          + " Horarios y calles, de Pluz y Luz del Sur."),
+             dias=dias, hoy_n=hoy_n, total=len(cortes),
+             distritos_hoy=distritos_del_dia(hoy), distritos_manana=distritos_del_dia(hoy + timedelta(days=1)))
     for s, nombre in nombres.items():
         lista = por_distrito.get(s, [])
+        recientes = historial_distrito.get(s, [])
         hoy_d = [c for c in lista if c["fecha"] == hoy.isoformat()]
         dias_d = [{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": [c for c in lista if c["fecha"] == f]}
                   for f in sorted({c["fecha"] for c in lista})]
+        ultimo = f" Último corte: {recientes[0]['fecha_txt'].lower()}." if recientes else ""
         if hoy_d:
             desc = (f"Hoy hay {len(hoy_d)} {'corte' if len(hoy_d) == 1 else 'cortes'} de luz programados en {nombre}: "
                     + ", ".join(f"de {c['inicio']} a {c['fin']}" for c in hoy_d[:3]) + ". Calles afectadas y próximos cortes.")
@@ -181,11 +201,12 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
             desc = (f"Hoy no hay cortes de luz programados en {nombre}. Próximo corte: {dias_d[0]['fecha_txt'].lower()}, "
                     f"de {lista[0]['inicio']} a {lista[0]['fin']}. Calles afectadas.")
         else:
-            desc = (f"No hay cortes de luz programados publicados para {nombre} en los próximos días. "
-                    "Datos de Pluz y Luz del Sur, actualizados cada 6 horas.")
+            desc = (f"No hay cortes de luz programados publicados para {nombre} en los próximos días.{ultimo} "
+                    "Datos de Pluz y Luz del Sur, actualizados cada 2 horas.")
         escribir(f"/distrito/{s}/", "distrito.html", indexable=True,
                  titulo=f"Corte de luz hoy {hoy_txt} en {nombre}: horarios y calles", descripcion=desc[:160],
-                 nombre=nombre, dias=dias_d, hoy_d=hoy_d)
+                 nombre=nombre, dias=dias_d, hoy_d=hoy_d, recientes=recientes[:MAX_HISTORIAL],
+                 n_recientes=len(recientes))
     escribir("/acerca/", "acerca.html", indexable=True, titulo="Acerca de Corte Hoy",
              descripcion="De dónde salen los cortes programados de luz que publica Corte Hoy y cada cuánto se actualizan.")
     (out / "404.html").write_text(env.get_template("404.html").render(
@@ -203,7 +224,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
         + "".join(f"<url><loc>{base_url}{p}</loc><lastmod>{hoy_iso}</lastmod></url>" for p in paginas)
         + "</urlset>\n", encoding="utf-8")
     (out / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {base_url}/sitemap.xml\n", encoding="utf-8")
-    return {"cortes": len(cortes), "paginas": len(paginas), "hoy": hoy_n}
+    return {"cortes": len(cortes), "paginas": len(paginas), "hoy": hoy_n, "historial": len(pasados)}
 
 
 def main(argv=None) -> int:
@@ -214,7 +235,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     datos = json.loads(Path(args.data).read_text(encoding="utf-8"))
     r = construir(datos, Path(args.out), args.base_url)
-    print(f"{r['cortes']} cortes desde hoy ({r['hoy']} hoy) · {r['paginas']} páginas")
+    print(f"{r['cortes']} cortes desde hoy ({r['hoy']} hoy) · {r['historial']} en el historial · {r['paginas']} páginas")
     return 0
 
 

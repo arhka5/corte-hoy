@@ -2,8 +2,9 @@ name: Actualizar cortes y publicar
 
 on:
   schedule:
-    # 00:05, 06:05, 12:05 y 18:05 de Lima (UTC-5): a medianoche "hoy" pasa al día nuevo.
-    - cron: "5 5,11,17,23 * * *"
+    # Cada 2 horas, a las :05 de las horas pares de Lima (UTC-5; 05 UTC = 00:05 Lima, cuando "hoy" pasa al
+    # día nuevo). Luz del Sur solo publica los cortes del día: consultar seguido evita perder los de la mañana.
+    - cron: "5 1-23/2 * * *"
   workflow_dispatch:
   push:
     branches: [main]

@@ -15,6 +15,20 @@
 </section>
 {% endfor %}
 
+{% if recientes %}
+<section class="bloque recientes">
+  <h2>Cortes recientes en {{ nombre }}</h2>
+  <p class="heroe-texto">Los cortes programados de los últimos 30 días{% if n_recientes > recientes|length %} (los {{ recientes|length }} más recientes de {{ n_recientes }}){% endif %}. Sirve para ver si tu calle o tu barrio suele tener mantenimientos.</p>
+  <ul class="r-lista">
+  {% for c in recientes %}
+    <li><p class="r-cab"><strong>{{ c.fecha_txt }}</strong>, {{ c.inicio }} a {{ c.fin }}{% if c.ds|length > 1 %} · {{ c.distritos_txt }}{% endif %} · {{ c.empresa_txt }}</p>
+    {% if c.zonas_txt|length > 160 %}<details class="c-zonas"><summary>{{ c.zonas_txt[:120].rsplit(' ', 1)[0] }}… <span>Ver todo</span></summary><p>{{ c.zonas_txt }}</p></details>
+    {% elif c.zonas_txt %}<p class="c-zonas">{{ c.zonas_txt }}</p>{% endif %}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 <section class="bloque nota">
   <h2>¿Se fue la luz y no aparece aquí?</h2>
   <p>Puede ser un corte no programado (una falla o una emergencia). Esos no se anuncian con anticipación: repórtalo a tu distribuidora. {% for k, e in empresas.items() %}<a href="{{ e.url }}" rel="noopener">{{ e.nombre }}</a> atiende {{ e.zona }}{{ '; ' if not loop.last else '.' }}{% endfor %}</p>

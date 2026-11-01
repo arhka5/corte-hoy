@@ -4,7 +4,7 @@ Cortes de luz programados en Lima y Callao, por día y por distrito: https://cor
 
 Junta los avisos de mantenimiento de **Pluz Energía** (PDF semanal) y **Luz del Sur**
 (consulta de su web) en páginas estáticas, una por distrito. GitHub Actions las
-regenera cada 6 horas y las publica en GitHub Pages.
+regenera cada 2 horas y las publica en GitHub Pages.
 
 ## Correr en local
 

@@ -84,6 +84,16 @@ details[open].c-zonas summary { display: none; }
 .distritos a { display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 12px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 8px; text-decoration: none; color: var(--tinta); font-weight: 700; }
 .distritos a:hover { border-color: var(--noche); }
 .distritos span { background: var(--ambar); color: var(--tinta); border-radius: 999px; padding: 1px 9px; font: 800 .95rem var(--rotulo); font-variant-numeric: tabular-nums; }
+/* Portada: distritos con cortes hoy y mañana, a un toque */
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0 0; }
+.chips-tit { font: 700 1rem var(--rotulo); color: var(--suave); margin-right: 2px; }
+.chips a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 999px; color: var(--tinta); font-weight: 700; text-decoration: none; }
+.chips a:hover { border-color: var(--noche); }
+/* Distrito: cortes de los últimos 30 días */
+.r-lista { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+.r-lista li { background: var(--blanco); border: 1px solid var(--linea); border-radius: 8px; padding: 10px 14px 4px; }
+.r-cab { margin: 0 0 4px; color: var(--tinta); }
+.c-sin-calles { color: var(--suave); }
 .nota { background: var(--blanco); border: 1px solid var(--linea); border-radius: 10px; padding: 16px; }
 .nota h2 { font-size: 1.3rem; text-transform: none; }
 .texto { max-width: 46em; padding: 28px 0; }

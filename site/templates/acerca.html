@@ -7,7 +7,9 @@
   <ul>
     {% for k, e in empresas.items() %}<li><a href="{{ e.url }}" rel="noopener">{{ e.nombre }}</a> ({{ e.zona }}){% if fuentes.get(k) %}: {% if fuentes[k].ok %}consultada correctamente{% else %}la última consulta falló, se muestran sus avisos anteriores{% endif %}{% endif %}.</li>{% endfor %}
   </ul>
-  <p>Se revisan cada 6 horas. Copiamos el texto de cada aviso tal como lo publica la empresa (horario, distrito, calles y manzanas) y enlazamos al aviso original. Si hay diferencias, vale lo que diga la empresa.</p>
+  <p>Se revisan cada 2 horas. Copiamos el texto de cada aviso tal como lo publica la empresa (horario, distrito, calles y manzanas) y enlazamos al aviso original. Si hay diferencias, vale lo que diga la empresa.</p>
+  <p>Pluz publica sus cortes de toda la semana con las calles afectadas. Luz del Sur publica solo los cortes del día, por distrito y con horario, sin las calles: para saber si un corte incluye tu casa hay que consultarlo con el número de suministro en su web.</p>
+  <p>Cada distrito muestra también los cortes de los últimos 30 días, para ver si tu calle o tu barrio suele tener mantenimientos.</p>
   <h2>Lo que no incluye</h2>
   <p>Cortes de agua: Sedapal no publica sus cortes programados en una lista en su web (los anuncia por WhatsApp y redes), así que por ahora no podemos incluirlos. Tampoco aparecen cortes por fallas o emergencias, que no se anuncian.</p>
   <h2 id="privacidad">Privacidad, publicidad y cookies</h2>
