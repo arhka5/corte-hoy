@@ -272,7 +272,9 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
     manana = distritos_del_dia(hoy + timedelta(days=1))
     manana_n = len(por_dia.get((hoy + timedelta(days=1)).isoformat(), []))
     escribir("/", "portada.html", indexable=True,
-             titulo=f"Cortes de luz programados hoy {hoy_txt} en Lima y Callao",
+             # Sin fecha: Google no recrawlea la portada a diario y mostraba "hoy 30 de octubre" días después
+             # (CTR 1.1 % -> 0.5 % tras ponerla, Search Console 6-nov). Los distritos sí la llevan y convierten bien.
+             titulo="Cortes de luz programados hoy en Lima y Callao: horarios por distrito",
              descripcion=(f"Hoy hay {hoy_n} {'corte programado' if hoy_n == 1 else 'cortes programados'} de luz en Lima"
                           + (f": {', '.join(distritos_hoy[:4])}" if distritos_hoy else "")
                           + ". Horarios y calles por distrito, de Pluz y Luz del Sur." if hoy_n else
