@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_corte.html" import corte_agua %}
+{% block contenido %}
+<nav class="migas" aria-label="Migas de pan"><a href="/">Inicio</a> / <a href="/agua/">Cortes de agua</a> / <span aria-current="page">{{ nombre }}</span></nav>
+<section class="heroe">
+  <h1>Corte de agua hoy en {{ nombre }}</h1>
+  <p class="estado{{ ' hay' if hoy_d }}">{% if hoy_d %}Hoy hay <strong>{{ hoy_d|length }} {{ 'corte de agua' if hoy_d|length == 1 else 'cortes de agua' }}</strong> en {{ nombre }}.{% elif dias %}Hoy no hay cortes de agua en {{ nombre }}. El próximo es el {{ dias[0].fecha_txt|lower }}.{% else %}Sedapal no tiene cortes de agua registrados en {{ nombre }} para hoy ni para los próximos días.{% endif %}</p>
+  <p class="heroe-texto">Revisa si tu zona aparece en la lista: un corte afecta solo las urbanizaciones, asentamientos y sectores indicados, no todo el distrito. Incluye los cortes imprevistos por roturas o fugas apenas Sedapal los registra. Actualizado el {{ actualizado_txt }}.</p>
+  {% if luz %}<p class="otro-servicio"><a href="/distrito/{{ slug }}/">Corte de luz en {{ nombre }}</a>: {% if luz_hoy %}hoy hay {{ luz_hoy }} {{ 'corte programado' if luz_hoy == 1 else 'cortes programados' }}.{% else %}hoy no hay cortes de luz programados.{% endif %}</p>{% endif %}
+</section>
+
+{% for d in dias %}
+<section class="dia">
+  <h2>{{ d.fecha_txt }}</h2>
+  <div class="cortes">{% for c in d.cortes %}{{ corte_agua(c, c.ds|length > 1) }}{% endfor %}</div>
+</section>
+{% endfor %}
+
+{% if recientes %}
+<section class="bloque recientes">
+  <h2>Cortes de agua recientes en {{ nombre }}</h2>
+  <p class="heroe-texto">Los de los últimos 30 días{% if n_recientes > recientes|length %} (los {{ recientes|length }} más recientes de {{ n_recientes }}){% endif %}. Sirve para ver si tu zona suele quedarse sin agua.</p>
+  <ul class="r-lista">
+  {% for c in recientes %}
+    <li><p class="r-cab"><strong>{{ c.fecha_txt }}</strong>, {{ c.inicio }} a {{ c.fin }} · {{ 'Imprevisto' if c.tipo == 'imprevista' else 'Programado' }}{% if c.causa %} · {{ c.causa }}{% endif %}</p>
+    {% if c.zonas_txt|length > 160 %}<details class="c-zonas"><summary>{{ c.zonas_txt[:120].rsplit(' ', 1)[0] }}… <span>Ver todo</span></summary><p>{{ c.zonas_txt }}</p></details>
+    {% elif c.zonas_txt %}<p class="c-zonas">{{ c.zonas_txt }}</p>{% endif %}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="bloque nota">
+  <h2>¿No tienes agua y no aparece aquí?</h2>
+  <p>Puede ser una falla que Sedapal aún no registra, o un problema solo de tu edificio. Repórtalo a Sedapal por Aquafono, {{ sedapal.fono }}. Mira también <a href="/agua/">todos los cortes de agua de hoy en Lima y Callao</a>.</p>
+</section>
+{% endblock %}

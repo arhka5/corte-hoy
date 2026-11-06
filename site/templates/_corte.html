@@ -19,3 +19,19 @@
   </div>
 </article>
 {% endmacro %}
+
+{# Corte de agua de Sedapal: programado (mantenimiento) o imprevisto (rotura, fuga), con la causa #}
+{% macro corte_agua(c, mostrar_distrito=True) %}
+<article class="corte corte-agua{{ ' imprevisto' if c.tipo == 'imprevista' }}">
+  <p class="c-hora"><time>{{ c.inicio }}</time> a <time>{{ c.fin }}</time>{{ c.hasta_txt }} <span class="c-tipo">{{ 'Imprevisto' if c.tipo == 'imprevista' else 'Programado' }}</span></p>
+  {% if mostrar_distrito %}<h3 class="c-dist">{% for d in c.ds %}<a href="/agua/distrito/{{ d.slug }}/">{{ d.nombre }}</a>{{ ' y ' if not loop.last }}{% endfor %}</h3>{% endif %}
+  {% if c.causa %}<p class="c-causa">{{ c.causa }}.{% if c.nota %} {{ c.nota }}{% endif %}</p>{% endif %}
+  {% if c.zonas_txt|length > 280 %}
+  <details class="c-zonas"><summary>{{ c.zonas_txt[:200].rsplit(' ', 1)[0] }}… <span>Ver todas las zonas</span></summary><p>{{ c.zonas_txt }}</p></details>
+  {% elif c.zonas_txt %}<p class="c-zonas">{{ c.zonas_txt }}</p>{% endif %}
+  <div class="c-pie">
+    <p class="c-fuente">Datos de <a href="{{ c.fuente }}" rel="noopener">Sedapal</a></p>
+    {{ compartir('Corte de agua en ' ~ c.distritos_txt, c.fecha_abs ~ ', de ' ~ c.inicio ~ ' a ' ~ c.fin ~ c.hasta_txt, abs('/agua/distrito/' ~ c.ds[0].slug ~ '/')) }}
+  </div>
+</article>
+{% endmacro %}

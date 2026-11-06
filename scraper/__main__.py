@@ -17,15 +17,18 @@ import traceback
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import distriluz, luzdelsur, pluz
+from . import distriluz, luzdelsur, pluz, sedapal
 from .client import Client
 
 LIMA = timezone(timedelta(hours=-5))
-FUENTES = {"pluz": pluz.scrape, "luzdelsur": luzdelsur.scrape, "hidrandina": distriluz.scrape}
+FUENTES = {"pluz": pluz.scrape, "luzdelsur": luzdelsur.scrape, "hidrandina": distriluz.scrape,
+           "sedapal": sedapal.scrape}
 DIAS_HISTORIAL = 30
 
 
 def corte_id(c: dict) -> str:
+    if c.get("ref"):  # Sedapal numera sus incidencias y puede mover la hora de fin: el número las identifica
+        return hashlib.sha1(f"{c['empresa']}|{c['ref']}".encode()).hexdigest()[:10]
     raw = "|".join([c["empresa"], c["fecha"], c["inicio"], c["fin"], "/".join(c["distritos"]), c["zonas"][:200]])
     return hashlib.sha1(raw.encode()).hexdigest()[:10]
 
@@ -62,6 +65,11 @@ def main(argv=None) -> int:
     # lo visto hoy en corridas anteriores se conserva.
     if estado["luzdelsur"]["ok"]:
         cortes += [c for c in anteriores if c["empresa"] == "luzdelsur" and c.get("fecha") == hoy]
+    # Sedapal saca del mapa la interrupción que ya resolvió: la de hoy se conserva (sin pisar la versión actual).
+    if estado["sedapal"]["ok"]:
+        actuales = {corte_id(c) for c in cortes if c["empresa"] == "sedapal"}
+        cortes += [c for c in anteriores if c["empresa"] == "sedapal" and c.get("fecha") == hoy
+                   and corte_id(c) not in actuales]
 
     unicos = {}
     for c in cortes:

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_corte.html" import corte_agua %}
+{% block contenido %}
+<nav class="migas" aria-label="Migas de pan"><a href="/">Inicio</a> / <span aria-current="page">Cortes de agua</span></nav>
+<section class="heroe">
+  <h1>Cortes de agua hoy en Lima y Callao</h1>
+  <p class="estado{{ ' hay' if hoy_n }}">{% if hoy_n %}Hoy hay <strong>{{ hoy_n }} {{ 'corte de agua' if hoy_n == 1 else 'cortes de agua' }}</strong>{% if n_imprev %}, {{ n_imprev }} {{ 'imprevisto' if n_imprev == 1 else 'imprevistos' }}{% endif %}.{% else %}Hoy no hay cortes de agua registrados por Sedapal.{% endif %}</p>
+  {% for etiqueta, lista in [('Hoy', distritos_hoy), ('Mañana', distritos_manana)] if lista %}
+  <p class="chips"><span class="chips-tit">{{ etiqueta }} en:</span>{% for d in lista %} <a href="/agua/distrito/{{ d.slug }}/">{{ d.nombre }}</a>{% endfor %}</p>
+  {% endfor %}
+  <p class="heroe-texto">Los cortes de agua que Sedapal registra en su mapa de interrupciones: los programados (limpieza de reservorios, empalmes de tuberías) y los imprevistos por roturas o fugas, que aparecen apenas Sedapal los registra. Cada corte afecta solo las zonas indicadas, no todo el distrito. Actualizado el {{ actualizado_txt }}.</p>
+</section>
+
+{% for d in dias %}
+<section class="dia">
+  <h2>{{ d.fecha_txt }}</h2>
+  <div class="cortes">{% for c in d.cortes %}{{ corte_agua(c) }}{% endfor %}</div>
+</section>
+{% else %}
+<p class="vacio">Sedapal no tiene cortes de agua registrados para hoy ni para los próximos días.</p>
+{% endfor %}
+
+<section class="bloque">
+  <h2>Corte de agua por distrito</h2>
+  <ul class="distritos">{% for d in distritos_agua %}<li><a href="/agua/distrito/{{ d.slug }}/">{{ d.nombre }}{% if d.n %} <span>{{ d.n }}</span>{% endif %}</a></li>{% endfor %}</ul>
+</section>
+
+<section class="bloque nota">
+  <h2>¿No tienes agua y no aparece aquí?</h2>
+  <p>Puede ser una falla que Sedapal aún no registra, o un problema solo de tu edificio. Repórtalo a Sedapal por Aquafono, {{ sedapal.fono }}. ¿Necesitas agua? Sedapal publica los <a href="https://sedapal.maps.arcgis.com/apps/webappviewer/index.html?id=c5cd10b04b454687836f0759ec165334" rel="noopener">puntos de abastecimiento con cisternas</a>.</p>
+  <p>También tenemos los <a href="/">cortes de luz programados en Lima y Callao</a>.</p>
+</section>
+{% endblock %}

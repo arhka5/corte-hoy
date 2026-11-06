@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from scraper import distriluz, luzdelsur, pluz
@@ -69,3 +70,22 @@ def test_luz_del_sur_formato_real():
     # sin AM/PM, la "a" de "12:00 a 13:00" no se lee como "AM"
     assert luzdelsur._horario("12:00 a 13:00") == ("12:00", "13:00")
     assert luzdelsur._horario("9:00 a.m. a 1:30 p.m.") == ("09:00", "13:30")
+
+
+def test_sedapal_mapa_de_interrupciones():
+    # consulta real del 6-nov-2026: 28 programadas y 6 imprevistas, todas de agua
+    from scraper import sedapal
+    datos = json.loads((FIX / "sedapal.json").read_text(encoding="utf-8"))
+    cortes = sedapal.parse(datos, "2026-11-06")
+    assert len(cortes) == 34
+    assert {c["tipo"] for c in cortes} == {"programada", "imprevista"}
+    c = next(c for c in cortes if c["ref"] == "766200")
+    assert (c["fecha"], c["inicio"], c["fin"], c["distritos"]) == ("2026-11-06", "07:13", "13:00", ["CARABAYLLO"])
+    assert c["causa"] == "Reparacion de rotura de tuberia" and c["zonas"].startswith("P.J ")
+    assert all("¿" not in c["zonas"] for c in cortes)
+    # lo de ayer que ya terminó no sale; lo que empezó antes y sigue se muestra hoy, diciendo desde cuándo
+    assert sedapal.parse(datos, "2026-11-20") == []
+    assert sedapal._zona("URBANIZACION-A.H CALLER, LAURA") == "A.H LAURA CALLER"
+    assert sedapal._zona("URBANIZACION-A.H MAYO, 19 DE") == "A.H 19 DE MAYO"
+    assert sedapal._zona("SECTOR-305") == "SECTOR 305"
+    assert sedapal.reparar("DESINFECCI¿N") == "DESINFECCIÓN"

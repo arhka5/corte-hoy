@@ -8,6 +8,7 @@
   <p class="chips"><span class="chips-tit">{% if enlace %}<a class="chips-dia" href="{{ enlace }}">{{ etiqueta }}</a>{% else %}{{ etiqueta }}{% endif %} en:</span>{% for d in lista %} <a href="/distrito/{{ d.slug }}/">{{ d.nombre }}</a>{% endfor %}</p>
   {% endfor %}
   <p class="heroe-texto">Juntamos los avisos de mantenimiento de Pluz (Lima norte, centro y Callao) y Luz del Sur (Lima sur y este) en una sola lista por día y por distrito. Elige tu distrito arriba para ver solo lo tuyo. Actualizado el {{ actualizado_txt }}.</p>
+  <p class="otro-servicio"><a href="/agua/">Cortes de agua hoy</a>: {% if agua_hoy %}Sedapal tiene {{ agua_hoy|length }} {{ 'corte' if agua_hoy|length == 1 else 'cortes' }} en {{ agua_hoy|map(attribute='distritos_txt')|unique|list|length }} {{ 'distrito' if agua_hoy|map(attribute='distritos_txt')|unique|list|length == 1 else 'distritos' }}.{% else %}hoy no hay cortes de agua registrados por Sedapal.{% endif %}</p>
 </section>
 
 {% for d in dias %}

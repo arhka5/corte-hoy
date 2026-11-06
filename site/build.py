@@ -35,6 +35,11 @@ EMPRESAS = {
     "hidrandina": {"nombre": "Hidrandina", "zona": "La Libertad, Áncash y Cajamarca",
                    "url": "https://aplicaciones.distriluz.com.pe/Apps/Visits/Home/CortesProgramados"},
 }
+SEDAPAL = {"nombre": "Sedapal", "zona": "Lima y Callao",
+           "url": "https://sedapal.maps.arcgis.com/apps/webappviewer/index.html?id=32603d5182d846f69bd4cb6703d66e88",
+           "fono": "(01) 317-8000"}
+# Norte chico: el agua no es de Sedapal (EPS de Huacho, Huaral, Barranca…), sin página de agua.
+SIN_SEDAPAL = {"huacho", "hualmay", "huaral", "chancay", "barranca", "huaura", "santa-maria"}
 LIMA_REGION = "Lima y Callao"
 # Regiones fuera de Lima: página propia (/region/<slug>/) y distritos con la región en la URL
 # (/distrito/trujillo-la-libertad/), porque hay nombres repetidos (Independencia en Lima y en Huaraz).
@@ -163,8 +168,34 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                 "zonas_txt": zonas_txt(c.get("zonas", "")),
                 "empresa_txt": EMPRESAS[c["empresa"]]["nombre"]}
 
-    cortes = [preparar(c) for c in datos.get("cortes", []) if c["fecha"] >= hoy.isoformat()]
-    pasados = [preparar(c) for c in datos.get("historial", []) if c["fecha"] < hoy.isoformat()]
+    def es_agua(c: dict) -> bool:
+        return c.get("servicio") == "agua"
+
+    def preparar_agua(c: dict) -> dict:
+        ds = [distrito(d) for d in c["distritos"]]
+        hasta = ""
+        if c.get("fecha_fin"):
+            f = date.fromisoformat(c["fecha_fin"])
+            hasta = f" del {DIAS[f.weekday()]} {f.day}"
+        return {**c, "region": LIMA_REGION, "ds": [{"slug": s, "nombre": n} for s, n in ds],
+                "distritos_txt": " y ".join(n for _, n in ds),
+                "fecha_txt": fecha_txt(c["fecha"], hoy), "fecha_abs": fecha_abs(c["fecha"]), "hasta_txt": hasta,
+                "zonas_txt": zonas_txt(c.get("zonas", "")), "empresa_txt": SEDAPAL["nombre"]}
+
+    # Agua (Sedapal) va en sus propias páginas (/agua/…): la luz sigue igual
+    agua = [preparar_agua(c) for c in datos.get("cortes", []) if es_agua(c) and c["fecha"] >= hoy.isoformat()]
+    agua_pasados = [preparar_agua(c) for c in datos.get("historial", []) if es_agua(c) and c["fecha"] < hoy.isoformat()]
+    cortes = [preparar(c) for c in datos.get("cortes", []) if not es_agua(c) and c["fecha"] >= hoy.isoformat()]
+    pasados = [preparar(c) for c in datos.get("historial", []) if not es_agua(c) and c["fecha"] < hoy.isoformat()]
+    agua.sort(key=lambda c: (c["fecha"], c["inicio"], c["ds"][0]["nombre"]))
+    agua_distrito = defaultdict(list)
+    for c in agua:
+        for d in c["ds"]:
+            agua_distrito[d["slug"]].append(c)
+    agua_historial = defaultdict(list)
+    for c in sorted(agua_pasados, key=lambda c: (c["fecha"], c["inicio"]), reverse=True):
+        for d in c["ds"]:
+            agua_historial[d["slug"]].append(c)
     por_distrito = defaultdict(list)
     for c in cortes:
         for d in c["ds"]:
@@ -201,8 +232,14 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                                for s, n in nombres.items()),
                               key=lambda d: (orden_region.index(d["region"]), sin_tildes(d["nombre"]))),
         regiones=[{"nombre": r, **v} for r, v in REGIONES.items()], lima_region=LIMA_REGION,
-        fuentes=datos.get("sources", {}),
+        fuentes=datos.get("sources", {}), sedapal=SEDAPAL,
     )
+
+    def resumen_agua(s: str) -> dict:
+        """Recuadro "¿Y el agua?" de la página de luz del distrito."""
+        lista = agua_distrito.get(s, [])
+        return {"hoy": sum(1 for c in lista if c["fecha"] == hoy.isoformat()), "proximo": lista[0] if lista else None,
+                "existe": s in CANON and s not in SIN_SEDAPAL or s in agua_distrito}
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -244,6 +281,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                              " Revisa los próximos días por distrito.")
                           + " Horarios y calles, de Pluz y Luz del Sur."),
              dias=dias, hoy_n=hoy_n, total=len(cortes),
+             agua_hoy=[c for c in agua if c["fecha"] == hoy.isoformat()],
              distritos_hoy=distritos_del_dia(hoy), distritos_manana=distritos_del_dia(hoy + timedelta(days=1)),
              otras=[{"nombre": r, **v, "n": sum(1 for c in cortes if c["region"] == r)} for r, v in REGIONES.items()],
              imagen=("Cortes de luz hoy en Lima y Callao",
@@ -345,8 +383,69 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                  titulo=f"Corte de luz hoy {hoy_txt} en {lugar}: horarios y calles", descripcion=desc[:160],
                  nombre=nombre, region=region, info_region=None if en_lima else REGIONES[region],
                  dias=dias_d, hoy_d=hoy_d, recientes=recientes[:MAX_HISTORIAL], n_recientes=len(recientes),
+                 agua=resumen_agua(s) if en_lima else None, slug=s,
                  imagen=(f"Corte de luz en {nombre}", dato_img,
                          "cortehoy.toca.pe · Horarios y calles" + ("" if en_lima else f" · {region}"), bool(hoy_d or lista)))
+
+    # Agua (Sedapal): /agua/ y /agua/distrito/<slug>/, con la misma lógica que la luz
+    agua_slugs = {s for s in CANON if s not in SIN_SEDAPAL} | set(agua_distrito) | set(agua_historial)
+    nombres_agua = {s: CANON.get(s) or (agua_distrito.get(s) or agua_historial.get(s))[0]["ds"][0]["nombre"]
+                    for s in agua_slugs}
+    for c in agua + agua_pasados:  # el nombre bonito del distrito que trae el corte
+        for d in c["ds"]:
+            nombres_agua[d["slug"]] = CANON.get(d["slug"], d["nombre"])
+    distritos_agua = sorted(({"slug": s, "nombre": n, "n": len(agua_distrito.get(s, []))} for s, n in nombres_agua.items()),
+                            key=lambda d: sin_tildes(d["nombre"]))
+    agua_por_dia = defaultdict(list)
+    for c in agua:
+        agua_por_dia[c["fecha"]].append(c)
+    agua_dias = [{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": agua_por_dia[f]} for f in sorted(agua_por_dia)]
+    agua_hoy = agua_por_dia.get(hoy.isoformat(), [])
+
+    def distritos_agua_dia(fecha: date) -> list[dict]:
+        vistos = {d["slug"]: d for c in agua_por_dia.get(fecha.isoformat(), []) for d in c["ds"]}
+        return sorted(vistos.values(), key=lambda d: sin_tildes(d["nombre"]))
+    nombres_hoy_agua = [d["nombre"] for d in distritos_agua_dia(hoy)]
+    n_imprev = sum(1 for c in agua_hoy if c["tipo"] == "imprevista")
+    escribir("/agua/", "agua.html", indexable=True,
+             titulo=f"Cortes de agua hoy {hoy_txt} en Lima y Callao: distritos y horarios",
+             descripcion=((f"Hoy hay {len(agua_hoy)} {'corte de agua' if len(agua_hoy) == 1 else 'cortes de agua'} de Sedapal: "
+                           + ", ".join(nombres_hoy_agua[:4]) + (" y más" if len(nombres_hoy_agua) > 4 else "")
+                           + ". Horarios y zonas afectadas por distrito.") if agua_hoy else
+                          f"Hoy no hay cortes de agua de Sedapal registrados en Lima y Callao. {len(agua)} programados "
+                          "en los próximos días, con horarios y zonas por distrito.")[:160],
+             dias=agua_dias, hoy_n=len(agua_hoy), n_imprev=n_imprev,
+             distritos_hoy=distritos_agua_dia(hoy), distritos_manana=distritos_agua_dia(hoy + timedelta(days=1)),
+             distritos_agua=distritos_agua,
+             imagen=("Cortes de agua hoy en Lima y Callao",
+                     f"{fecha_abs(hoy.isoformat())}: {len(agua_hoy)} {'corte' if len(agua_hoy) == 1 else 'cortes'}" if agua_hoy else
+                     f"{fecha_abs(hoy.isoformat())}: sin cortes de agua",
+                     "cortehoy.toca.pe/agua · Horarios y zonas por distrito", bool(agua_hoy)))
+    for s, nombre in nombres_agua.items():
+        lista = agua_distrito.get(s, [])
+        recientes = agua_historial.get(s, [])
+        hoy_d = [c for c in lista if c["fecha"] == hoy.isoformat()]
+        dias_d = [{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": [c for c in lista if c["fecha"] == f]}
+                  for f in sorted({c["fecha"] for c in lista})]
+        if hoy_d:
+            desc = (f"Hoy hay {len(hoy_d)} {'corte de agua' if len(hoy_d) == 1 else 'cortes de agua'} en {nombre}: "
+                    + ", ".join(f"de {c['inicio']} a {c['fin']}" for c in hoy_d[:3]) + ". Zonas afectadas, de Sedapal.")
+            dato_img = f"{hoy_d[0]['fecha_abs']} · {hoy_d[0]['inicio']} a {hoy_d[0]['fin']}" + (
+                f" (+{len(hoy_d) - 1})" if len(hoy_d) > 1 else "")
+        elif lista:
+            desc = (f"Hoy no hay cortes de agua en {nombre}. Próximo: {dias_d[0]['fecha_txt'].lower()}, de "
+                    f"{lista[0]['inicio']} a {lista[0]['fin']}. Zonas afectadas, de Sedapal.")
+            dato_img = f"Próximo: {lista[0]['fecha_abs']} · {lista[0]['inicio']} a {lista[0]['fin']}"
+        else:
+            desc = (f"No hay cortes de agua de Sedapal registrados en {nombre} para hoy ni los próximos días. "
+                    "Revisado cada 2 horas.")
+            dato_img = "Sin cortes de agua"
+        escribir(f"/agua/distrito/{s}/", "agua_distrito.html", indexable=True,
+                 titulo=f"Corte de agua hoy {hoy_txt} en {nombre}: horarios y zonas", descripcion=desc[:160],
+                 nombre=nombre, slug=s, luz=s in nombres, dias=dias_d, hoy_d=hoy_d,
+                 recientes=recientes[:MAX_HISTORIAL], n_recientes=len(recientes),
+                 luz_hoy=sum(1 for c in por_distrito.get(s, []) if c["fecha"] == hoy.isoformat()),
+                 imagen=(f"Corte de agua en {nombre}", dato_img, "cortehoy.toca.pe · Horarios y zonas", bool(hoy_d or lista)))
     escribir("/acerca/", "acerca.html", indexable=True, titulo="Acerca de Corte Hoy",
              descripcion="De dónde salen los cortes programados de luz que publica Corte Hoy y cada cuánto se actualizan.")
     (out / "404.html").write_text(env.get_template("404.html").render(

@@ -3,7 +3,7 @@
 Cortes de luz programados en Lima y Callao, por día y por distrito: https://cortehoy.toca.pe
 
 Junta los avisos de mantenimiento de **Pluz Energía** (PDF semanal) y **Luz del Sur**
-(consulta de su web) en páginas estáticas, una por distrito. GitHub Actions las
+(consulta de su web), y los cortes de agua de **Sedapal** (mapa de interrupciones), en páginas estáticas, una por distrito. GitHub Actions las
 regenera cada 2 horas y las publica en GitHub Pages.
 
 ## Correr en local
@@ -17,8 +17,14 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt
 
 ## Qué no incluye
 
-Cortes de agua: Sedapal no publica sus cortes programados como lista en su web.
-Cortes por fallas: no se anuncian.
+Cortes de luz por fallas: no se anuncian. Cortes de agua fuera de Lima y Callao.
+
+## Agua (Sedapal)
+
+`scraper/sedapal.py` lee la capa "Incidencias" del mapa público de interrupciones de Sedapal
+(ArcGIS, `HEC/SGIO_TOTAL/MapServer/1`): programadas e imprevistas, con distrito, zonas, horario y
+causa. No se publica el campo INFOR_WEB (trae nombres del personal). Páginas: `/agua/` y
+`/agua/distrito/<slug>/`, enlazadas con la página de luz del mismo distrito.
 
 ## Fuentes y respeto
 
