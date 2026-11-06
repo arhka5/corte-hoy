@@ -35,6 +35,26 @@ EMPRESAS = {
     "hidrandina": {"nombre": "Hidrandina", "zona": "La Libertad, Áncash y Cajamarca",
                    "url": "https://aplicaciones.distriluz.com.pe/Apps/Visits/Home/CortesProgramados"},
 }
+# Página por empresa (/pluz/, /luz-del-sur/, /hidrandina/), sin fecha en el título como la portada.
+EMPRESAS_PAGINA = {
+    "pluz": {"slug": "pluz", "titulo": "Corte de luz Pluz hoy (ex Enel, Edelnor): horarios por distrito",
+             "h1": "Cortes de luz de Pluz hoy",
+             "intro": "Pluz Energía Perú es la distribuidora de Lima norte, Lima centro, el Callao y el norte chico "
+                      "(Huacho, Huaral, Barranca). Antes se llamaba Enel Distribución Perú y, antes, Edelnor: si "
+                      "buscas «corte de luz Enel» o «Edelnor», es la misma empresa. Publica cada semana un PDF con "
+                      "sus cortes programados por mantenimiento, con las calles y manzanas afectadas."},
+    "luzdelsur": {"slug": "luz-del-sur", "titulo": "Corte de luz Luz del Sur hoy: horarios por distrito",
+                  "h1": "Cortes de luz de Luz del Sur hoy",
+                  "intro": "Luz del Sur es la distribuidora de Lima sur y este (Surco, San Juan de Miraflores, Villa "
+                           "El Salvador, Ate, La Molina, Chorrillos y más). Publica solo los cortes del día, por "
+                           "distrito y con horario, sin las calles: para saber si incluye tu casa, consulta con tu "
+                           "número de suministro en su web."},
+    "hidrandina": {"slug": "hidrandina", "titulo": "Corte de luz Hidrandina hoy: La Libertad, Áncash y Cajamarca",
+                   "h1": "Cortes de luz de Hidrandina hoy",
+                   "intro": "Hidrandina (grupo Distriluz) es la distribuidora de La Libertad, Áncash y Cajamarca: "
+                            "Trujillo, Chimbote, Huaraz, Cajamarca y alrededores. Publica sus cortes programados "
+                            "con fecha, horario y los sectores afectados."},
+}
 SEDAPAL = {"nombre": "Sedapal", "zona": "Lima y Callao",
            "url": "https://sedapal.maps.arcgis.com/apps/webappviewer/index.html?id=32603d5182d846f69bd4cb6703d66e88",
            "fono": "(01) 317-8000"}
@@ -233,6 +253,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                               key=lambda d: (orden_region.index(d["region"]), sin_tildes(d["nombre"]))),
         regiones=[{"nombre": r, **v} for r, v in REGIONES.items()], lima_region=LIMA_REGION,
         fuentes=datos.get("sources", {}), sedapal=SEDAPAL,
+        empresas_pagina=[{"k": k, "slug": v["slug"], "nombre": EMPRESAS[k]["nombre"]} for k, v in EMPRESAS_PAGINA.items()],
     )
 
     def resumen_agua(s: str) -> dict:
@@ -328,7 +349,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
             por_dia_pasado[c["fecha"]].append(c)
     fechas = sorted(set(por_dia) | set(por_dia_pasado))
 
-    def pagina_dia(path: str, f: str, indexable: bool):
+    def pagina_dia(path: str, f: str, indexable: bool, titulo_fijo: str = ""):
         lista = por_dia.get(f) or por_dia_pasado.get(f, [])
         dist = sorted({d["slug"]: d for c in lista for d in c["ds"]}.values(), key=lambda d: sin_tildes(d["nombre"]))
         nombres_d = [d["nombre"] for d in dist]
@@ -340,7 +361,8 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
             desc = (f"{len(lista)} {'corte programado' if len(lista) == 1 else 'cortes programados'}: "
                     + ", ".join(nombres_d[:5]) + (" y más" if len(nombres_d) > 5 else "")
                     + ". Horarios y calles afectadas, de Pluz y Luz del Sur.")
-        escribir(path, "dia.html", indexable=indexable, titulo=titulo + (": distritos y horarios" if lista else ""),
+        escribir(path, "dia.html", indexable=indexable,
+                 titulo=titulo_fijo or titulo + (": distritos y horarios" if lista else ""),
                  descripcion=desc[:160], h1=titulo, fecha=f, fecha_txt=fecha_txt(f, hoy),
                  fecha_larga=fecha_larga(f), cortes=lista,
                  distritos=dist, pasado=f < hoy.isoformat(),
@@ -350,7 +372,10 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                          "cortehoy.toca.pe · Horarios y calles por distrito", bool(lista)),
                  anterior=fechas[i - 1] if i else None, siguiente=fechas[i + 1] if i is not None and i + 1 < len(fechas) else None)
 
-    pagina_dia("/manana/", (hoy + timedelta(days=1)).isoformat(), True)
+    # /manana/ sin fecha en el título (Google no la recrawlea a diario) y como lo pregunta la gente:
+    # "mañana habrá corte de luz", "habrá corte de luz mañana" (Search Console 6-nov)
+    pagina_dia("/manana/", (hoy + timedelta(days=1)).isoformat(), True,
+               "¿Habrá corte de luz mañana? Cortes programados en Lima y Callao")
     for f in fechas:
         pagina_dia(f"/dia/{f}/", f, f >= hoy.isoformat())
     for s, nombre in nombres.items():
@@ -412,7 +437,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
     nombres_hoy_agua = [d["nombre"] for d in distritos_agua_dia(hoy)]
     n_imprev = sum(1 for c in agua_hoy if c["tipo"] == "imprevista")
     escribir("/agua/", "agua.html", indexable=True,
-             titulo=f"Cortes de agua hoy {hoy_txt} en Lima y Callao: distritos y horarios",
+             titulo="Corte de agua hoy en Lima y Callao (Sedapal): distritos y horarios",
              descripcion=((f"Hoy hay {len(agua_hoy)} {'corte de agua' if len(agua_hoy) == 1 else 'cortes de agua'} de Sedapal: "
                            + ", ".join(nombres_hoy_agua[:4]) + (" y más" if len(nombres_hoy_agua) > 4 else "")
                            + ". Horarios y zonas afectadas por distrito.") if agua_hoy else
@@ -451,6 +476,40 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                  recientes=recientes[:MAX_HISTORIAL], n_recientes=len(recientes),
                  luz_hoy=sum(1 for c in por_distrito.get(s, []) if c["fecha"] == hoy.isoformat()),
                  imagen=(f"Corte de agua en {nombre}", dato_img, "cortehoy.toca.pe · Horarios y zonas", bool(hoy_d or lista)))
+    # Una página por empresa: la gente busca "corte de luz pluz hoy", "corte de luz enel hoy", "edelnor corte
+    # de luz", "luz del sur corte de luz hoy…" (46 búsquedas, 169 impresiones y 0 clics en Search Console, 6-nov)
+    for k, info in EMPRESAS_PAGINA.items():
+        e = EMPRESAS[k]
+        lista_e = [c for c in cortes if c["empresa"] == k]
+        dias_e = defaultdict(list)
+        for c in lista_e:
+            dias_e[c["fecha"]].append(c)
+
+        def distritos_e(fecha: date) -> list[dict]:
+            vistos = {d["slug"]: d for c in dias_e.get(fecha.isoformat(), []) for d in c["ds"]}
+            return sorted(vistos.values(), key=lambda d: sin_tildes(d["nombre"]))
+        hoy_e = dias_e.get(hoy.isoformat(), [])
+        atendidos = sorted({d["slug"]: d for c in lista_e + [c for c in pasados if c["empresa"] == k]
+                            for d in c["ds"]}.values(), key=lambda d: sin_tildes(d["nombre"]))
+        nombres_e = [d["nombre"] for d in distritos_e(hoy)]
+        desc = ((f"Hoy hay {len(hoy_e)} {'corte programado' if len(hoy_e) == 1 else 'cortes programados'} de "
+                 f"{e['nombre']}: " + ", ".join(nombres_e[:4]) + (" y más" if len(nombres_e) > 4 else "") + ".")
+                if hoy_e else f"Hoy no hay cortes programados de {e['nombre']}. "
+                + (f"{len(lista_e)} en los próximos días." if lista_e else "Revisa los próximos días."))
+        for extra in (f" Horarios y calles por distrito ({e['zona']}).", " Horarios y calles por distrito."):
+            if len(desc + extra) <= 160:
+                desc += extra
+                break
+        escribir(f"/{info['slug']}/", "empresa.html", indexable=True, titulo=info["titulo"], descripcion=desc[:160],
+                 e=e, info=info, k=k, hoy_n=len(hoy_e), total=len(lista_e),
+                 dias=[{"fecha": f, "fecha_txt": fecha_txt(f, hoy), "cortes": dias_e[f]} for f in sorted(dias_e)],
+                 distritos_hoy=distritos_e(hoy), distritos_manana=distritos_e(hoy + timedelta(days=1)),
+                 atendidos=atendidos,
+                 imagen=(f"Cortes de luz {e['nombre']}",
+                         f"{fecha_abs(hoy.isoformat())}: {len(hoy_e)} {'corte' if len(hoy_e) == 1 else 'cortes'}" if hoy_e else
+                         f"{len(lista_e)} en los próximos días" if lista_e else "Sin cortes programados",
+                         f"cortehoy.toca.pe · {e['zona']}", bool(hoy_e or lista_e)))
+
     escribir("/acerca/", "acerca.html", indexable=True, titulo="Acerca de Corte Hoy",
              descripcion="De dónde salen los cortes programados de luz que publica Corte Hoy y cada cuánto se actualizan.")
     (out / "404.html").write_text(env.get_template("404.html").render(
