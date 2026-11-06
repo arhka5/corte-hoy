@@ -384,6 +384,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                  nombre=nombre, region=region, info_region=None if en_lima else REGIONES[region],
                  dias=dias_d, hoy_d=hoy_d, recientes=recientes[:MAX_HISTORIAL], n_recientes=len(recientes),
                  agua=resumen_agua(s) if en_lima else None, slug=s,
+                 tab_agua=f"/agua/distrito/{s}/" if en_lima and resumen_agua(s)["existe"] else None,
                  imagen=(f"Corte de luz en {nombre}", dato_img,
                          "cortehoy.toca.pe · Horarios y calles" + ("" if en_lima else f" · {region}"), bool(hoy_d or lista)))
 
@@ -396,6 +397,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
             nombres_agua[d["slug"]] = CANON.get(d["slug"], d["nombre"])
     distritos_agua = sorted(({"slug": s, "nombre": n, "n": len(agua_distrito.get(s, []))} for s, n in nombres_agua.items()),
                             key=lambda d: sin_tildes(d["nombre"]))
+    env.globals["distritos_agua"] = distritos_agua  # selector del encabezado en las páginas de agua
     agua_por_dia = defaultdict(list)
     for c in agua:
         agua_por_dia[c["fecha"]].append(c)
@@ -414,7 +416,7 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
                            + ". Horarios y zonas afectadas por distrito.") if agua_hoy else
                           f"Hoy no hay cortes de agua de Sedapal registrados en Lima y Callao. {len(agua)} programados "
                           "en los próximos días, con horarios y zonas por distrito.")[:160],
-             dias=agua_dias, hoy_n=len(agua_hoy), n_imprev=n_imprev,
+             dias=agua_dias, hoy_n=len(agua_hoy), n_imprev=n_imprev, seccion="agua",
              distritos_hoy=distritos_agua_dia(hoy), distritos_manana=distritos_agua_dia(hoy + timedelta(days=1)),
              distritos_agua=distritos_agua,
              imagen=("Cortes de agua hoy en Lima y Callao",
@@ -442,7 +444,8 @@ def construir(datos: dict, out: Path, base_url: str) -> dict:
             dato_img = "Sin cortes de agua"
         escribir(f"/agua/distrito/{s}/", "agua_distrito.html", indexable=True,
                  titulo=f"Corte de agua hoy {hoy_txt} en {nombre}: horarios y zonas", descripcion=desc[:160],
-                 nombre=nombre, slug=s, luz=s in nombres, dias=dias_d, hoy_d=hoy_d,
+                 nombre=nombre, slug=s, luz=s in nombres, dias=dias_d, hoy_d=hoy_d, seccion="agua",
+                 tab_luz=f"/distrito/{s}/" if s in nombres else None,
                  recientes=recientes[:MAX_HISTORIAL], n_recientes=len(recientes),
                  luz_hoy=sum(1 for c in por_distrito.get(s, []) if c["fecha"] == hoy.isoformat()),
                  imagen=(f"Corte de agua en {nombre}", dato_img, "cortehoy.toca.pe · Horarios y zonas", bool(hoy_d or lista)))

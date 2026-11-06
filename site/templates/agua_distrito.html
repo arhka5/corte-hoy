@@ -3,7 +3,7 @@
 {% block contenido %}
 <nav class="migas" aria-label="Migas de pan"><a href="/">Inicio</a> / <a href="/agua/">Cortes de agua</a> / <span aria-current="page">{{ nombre }}</span></nav>
 <section class="heroe">
-  <h1>Corte de agua hoy en {{ nombre }}</h1>
+  <h1><svg class="h1-icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2C9 7 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-4-8-7-13z" fill="currentColor"/></svg>Corte de agua hoy en {{ nombre }}</h1>
   <p class="estado{{ ' hay' if hoy_d }}">{% if hoy_d %}Hoy hay <strong>{{ hoy_d|length }} {{ 'corte de agua' if hoy_d|length == 1 else 'cortes de agua' }}</strong> en {{ nombre }}.{% elif dias %}Hoy no hay cortes de agua en {{ nombre }}. El próximo es el {{ dias[0].fecha_txt|lower }}.{% else %}Sedapal no tiene cortes de agua registrados en {{ nombre }} para hoy ni para los próximos días.{% endif %}</p>
   <p class="heroe-texto">Revisa si tu zona aparece en la lista: un corte afecta solo las urbanizaciones, asentamientos y sectores indicados, no todo el distrito. Incluye los cortes imprevistos por roturas o fugas apenas Sedapal los registra. Actualizado el {{ actualizado_txt }}.</p>
   {% if luz %}<p class="otro-servicio"><a href="/distrito/{{ slug }}/">Corte de luz en {{ nombre }}</a>: {% if luz_hoy %}hoy hay {{ luz_hoy }} {{ 'corte programado' if luz_hoy == 1 else 'cortes programados' }}.{% else %}hoy no hay cortes de luz programados.{% endif %}</p>{% endif %}

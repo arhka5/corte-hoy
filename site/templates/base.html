@@ -30,20 +30,34 @@
 <script>window.goatcounter = {path: function (p) { return location.host + p }}</script>
 <script data-goatcounter="https://3b3n3z3r333.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
-<body>
+<body{% if seccion == 'agua' %} class="s-agua"{% endif %}>
 <a class="saltar" href="#contenido">Saltar al contenido</a>
 <header class="cab">
   <div class="envoltura cab-fila">
     <a class="marca" href="/" aria-label="Corte Hoy, inicio"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#14213d"/><path d="M18 4 9 18h6l-2 10 10-15h-6l3-9z" fill="#ffb703"/></svg><b>Corte <span>Hoy</span></b></a>
     <div class="cab-buscar">
       <label class="oculto" for="dist">Tu distrito</label>
-      <select id="dist" data-ir>
+      {% if seccion == 'agua' %}
+      <select id="dist" data-ir data-base="/agua/distrito/">
+        <option value="">Elige tu distrito…</option>
+        {% for d in distritos_agua %}<option value="{{ d.slug }}">{{ d.nombre }}</option>{% endfor %}
+      </select>
+      {% else %}
+      <select id="dist" data-ir data-base="/distrito/">
         <option value="">Elige tu distrito…</option>
         {% for r in [lima_region] + regiones|map(attribute='nombre')|list %}<optgroup label="{{ r }}">{% for d in distritos_menu if d.region == r %}<option value="{{ d.slug }}">{{ d.nombre }}</option>{% endfor %}</optgroup>{% endfor %}
       </select>
+      {% endif %}
     </div>
   </div>
 </header>
+{# Pestañas Luz | Agua: en un distrito llevan al mismo distrito del otro servicio #}
+<nav class="pestanas" aria-label="Tipo de corte">
+  <div class="envoltura">
+    <a href="{{ tab_luz or '/' }}"{% if seccion != 'agua' %} aria-current="true"{% endif %}><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2 6 14h5l-2 8 9-12h-5l3-8z" fill="currentColor"/></svg>Luz</a>
+    <a href="{{ tab_agua or '/agua/' }}"{% if seccion == 'agua' %} aria-current="true"{% endif %}><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2C9 7 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-4-8-7-13z" fill="currentColor"/></svg>Agua</a>
+  </div>
+</nav>
 <main id="contenido" class="envoltura">
 {% block contenido %}{% endblock %}
 </main>
@@ -63,7 +77,7 @@
 <script>
 // El selector lleva directo a la página del distrito (sin JS, el formulario igual funciona).
 document.querySelectorAll("[data-ir]").forEach(function (s) {
-  s.addEventListener("change", function () { if (s.value) location.href = "/distrito/" + s.value + "/"; });
+  s.addEventListener("change", function () { if (s.value) location.href = (s.dataset.base || "/distrito/") + s.value + "/"; });
 });
 </script>
 </body>

@@ -131,3 +131,20 @@ details[open].c-zonas summary { display: none; }
 .c-causa { margin: 0 0 6px; font-weight: 700; color: var(--tinta); }
 .otro-servicio { margin: 12px 0 0; padding: 10px 14px; max-width: 62ch; background: var(--blanco); border: 1px solid var(--linea); border-left: 6px solid #2b7bb9; border-radius: 8px; }
 .otro-servicio a { font-weight: 700; }
+
+/* Pestañas Luz | Agua (bajo la cabecera, en todas las páginas) */
+.pestanas { background: var(--blanco); border-bottom: 1px solid var(--linea); }
+.pestanas .envoltura { display: flex; gap: 6px; }
+.pestanas a { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 18px; color: var(--suave); font: 800 1.15rem/1 var(--rotulo); text-transform: uppercase; text-decoration: none; border-bottom: 4px solid transparent; }
+.pestanas a svg { width: 20px; height: 20px; }
+.pestanas a:hover { color: var(--noche); }
+.pestanas a[aria-current] { color: var(--noche); border-bottom-color: var(--ambar); }
+.pestanas a[aria-current] svg { color: #e09b00; }
+.s-agua .pestanas a[aria-current] { border-bottom-color: #2b7bb9; }
+.s-agua .pestanas a[aria-current] svg { color: #2b7bb9; }
+
+/* Sección de agua: el mismo sitio con acento azul en vez de ámbar */
+.s-agua .cab { border-image: repeating-linear-gradient(-45deg, #4aa3df 0 14px, var(--noche) 14px 22px) 6; }
+.s-agua .estado.hay { border-left-color: #4aa3df; }
+.s-agua .estado.hay strong { color: #8fd0ff; }
+.h1-icono { width: .85em; height: .85em; margin-right: .12em; vertical-align: -.08em; color: #2b7bb9; }
